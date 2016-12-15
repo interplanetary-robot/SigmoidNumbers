@@ -73,11 +73,11 @@ doc"""
   pseudosoftplus emulates ln(1 + e^x).
 
 """
-pseudosoftplus{N}(x::MLSigmoid{N}) = pseudosoftmax_careful(x)
+pseudosoftplus{N}(x::MLSigmoid{N}) = pseudosoftplus_careful(x)
 pseudosoftplus_sloppy{N}(x::MLSigmoid{N}) = reinterpret(MLSigmoid{N}, (@u(x) $ @signbit) >> 1)
-function pseudosoftplus_careful{N}(x::MLSigmoid{N})
+@generated function pseudosoftplus_careful{N}(x::MLSigmoid{N})
   mask = @mask(N)
   quote
-    reinterpret(MLSigmoid{N}, pseudosoftplus_sloppy(x) & $mask)
+    reinterpret(MLSigmoid{N}, @u(pseudosoftplus_sloppy(x)) & $mask)
   end
 end

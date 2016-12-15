@@ -63,6 +63,7 @@ doc"""
       #convert to the left-shifted but then go all the way over, then convert to @UInt
       fraction = (@UInt)(intform << ($ebits + 1) - (__BITS - $fbits))
     end
+
     (sign, exponent, fraction)
   end
 end
@@ -95,7 +96,7 @@ end
 
 function build_numeric{N, mode}(::Type{Sigmoid{N,mode}}, sign, exponent, fraction)
   if exponent < 0
-    fshift = exponent + 4
+    fshift = -exponent + 2
     body = one(@UInt) << (__BITS + exponent - 2)
   else
     #set the prefix.  That's 2^exponent - 1
@@ -111,11 +112,13 @@ function build_numeric{N, mode}(::Type{Sigmoid{N,mode}}, sign, exponent, fractio
 end
 
 function build_arithmetic{N, mode}(::Type{Sigmoid{N,mode}}, sign, exponent, fraction)
+  
+  normal = (fraction & @signbit) != 0
   #check if it's denormal.  If it is, then we don't shift.
-  fshift = ((fraction & @signbit) != 0) * (exponent + 1) + 1
+  fshift = normal * (exponent + 1) + 1
   #set the prefix.  That's 2^exponent - 1
   prefix = (one(@UInt) << (exponent + 1)) - 1
-  body = prefix << (__BITS - exponent - 2)
+  body = normal * (prefix << (__BITS - exponent - 2))
 
   absval = body | ((fraction & ((@signbit) - 1)) >> fshift)
 
