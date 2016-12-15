@@ -79,8 +79,10 @@ M5 = MLSigmoid{5}
 @test M5(0.75) == SigmoidNumbers.build_arithmetic(M5, false, 0, 0x6000_0000_0000_0000)
 @test M5(0.5)  == SigmoidNumbers.build_arithmetic(M5, false, 0, 0x4000_0000_0000_0000)
 @test M5(0.25) == SigmoidNumbers.build_arithmetic(M5, false, 0, 0x2000_0000_0000_0000)
+@test M5(-0.25) == SigmoidNumbers.build_arithmetic(M5, true, 0, 0x2000_0000_0000_0000)
+@test M5(-1.5)  == SigmoidNumbers.build_arithmetic(M5, true, 0, 0xC000_0000_0000_0000)
 
 #test cross-conversions.
-#for tile in M5
-#  @test tile == M5(Float64(tile))
-#end
+for tile in M5
+  @test tile == M5(Float64(tile))
+end

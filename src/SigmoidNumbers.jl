@@ -4,6 +4,7 @@ module SigmoidNumbers
   include("macros.jl")
   include("convert.jl")
   include("h-layer.jl")
+  include("iterators.jl")
 
   include("MLSigmoid/mlsigmoid.jl")
 

@@ -112,12 +112,12 @@ function build_numeric{N, mode}(::Type{Sigmoid{N,mode}}, sign, exponent, fractio
 end
 
 function build_arithmetic{N, mode}(::Type{Sigmoid{N,mode}}, sign, exponent, fraction)
-  
   normal = (fraction & @signbit) != 0
   #check if it's denormal.  If it is, then we don't shift.
   fshift = normal * (exponent + 1) + 1
   #set the prefix.  That's 2^exponent - 1
   prefix = (one(@UInt) << (exponent + 1)) - 1
+
   body = normal * (prefix << (__BITS - exponent - 2))
 
   absval = body | ((fraction & ((@signbit) - 1)) >> fshift)

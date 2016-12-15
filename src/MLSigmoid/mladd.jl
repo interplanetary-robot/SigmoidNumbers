@@ -33,41 +33,57 @@ function sub_algorithm(lhs_sgn, lhs_exp, lhs_frc, rhs_sgn, rhs_exp, rhs_frc)
   if (lhs_exp > rhs_exp)
     top_frc = lhs_frc
     bot_frc = rhs_frc >> (lhs_exp - rhs_exp)
-    base_sgn = lhs_sgn
-    base_exp = lhs_exp
+    diff_sgn = lhs_sgn
+    diff_exp = lhs_exp
   elseif (lhs_exp > rhs_exp)
     top_frc = rhs_frc
     bot_frc = lhs_frc >> (rhs_exp - lhs_exp)
-    base_sgn = lhs_sgn
-    base_exp = lhs_exp
+    diff_sgn = lhs_sgn
+    diff_exp = lhs_exp
   elseif (lhs_frc > rhs_frc)
     top_frc = lhs_frc
     bot_frc = rhs_frc
-    base_sgn = lhs_sgn
-    base_exp = lhs_exp
+    diff_sgn = lhs_sgn
+    diff_exp = lhs_exp
   else
     top_frc = rhs_frc
     bot_frc = lhs_frc
-    base_sgn = lhs_sgn
-    base_exp = lhs_Exp
+    diff_sgn = lhs_sgn
+    diff_exp = lhs_exp
   end
 
   #subtract the two from each other, with carry check.
   diff_frc = top_frc - bot_frc
 
+  #underflow check.
+  if (diff_frc > top_frc)
+    #decrease the exponent - note that this can't be less than zero.
+    diff_exp -= 1
+    diff_frc = (diff_frc << 1)
+  end
+
   #return the base sign, the adjusted exponent, and the result fraction.
-  (base_sgn, diff_frc > top_frc ? base_exp - 1 : base_exp, diff_frc)
+  (diff_sgn, diff_exp, diff_frc)
 end
 
 function add_algorithm(lhs_exp, lhs_frc, rhs_exp, rhs_frc)
   if (lhs_exp > rhs_exp)
     rhs_frc >>= (lhs_exp - rhs_exp)
-    base_exp = lhs_exp
+    sum_exp = lhs_exp
   else
     lhs_frc >>= (rhs_exp - lhs_exp)
-    base_exp = rhs_exp
+    sum_exp = rhs_exp
   end
   #add the two together, with carry check.
   sum_frc = rhs_frc + lhs_frc
-  (sum_frc < rhs_frc ? base_exp + 1 : base_exp, sum_frc)
+
+  #carry check.
+  if (sum_frc < rhs_frc)
+    #increase the exponent.
+    sum_exp += 1
+    #move the fraction over one, and append the top bit.
+    sum_frc = (sum_frc >> 1) | @signbit
+  end
+
+  (sum_exp, sum_frc)
 end
