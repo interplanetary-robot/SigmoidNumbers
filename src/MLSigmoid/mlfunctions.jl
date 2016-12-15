@@ -34,7 +34,7 @@ pseudologistic_sloppy{N}(x::MLSigmoid{N}) = reinterpret(MLSigmoid{N}, (@u(x) $ @
   mask = @mask(N)
   quote
     isfinite(x) || throw(ArgumentError("pseudologistic function is undefined for infinity"))
-    reinterpret(MLSigmoid{N}, (pseudologistic_sloppy(x) & $mask))
+    reinterpret(MLSigmoid{N}, (@u(pseudologistic_sloppy(x)) & $mask))
   end
 end
 
@@ -60,7 +60,7 @@ doc"""
   This function is undefined for values > 1 or less than zero.
 """
 pseudohalfcost{N}(y::MLSigmoid{N}) = pseudohalfcost_careful(y)
-pseudohalfcost_sloppy{N}(x::MLSigmoid{N}) = reinterpret(MLSigmoid{N}, @u(y) << 1)
+pseudohalfcost_sloppy{N}(y::MLSigmoid{N}) = reinterpret(MLSigmoid{N}, @u(y) << 1)
 function pseudohalfcost_careful{N}(y::MLSigmoid{N})
   @unitrange_check(y, :pseudohalfcost)
   pseudohalfcost_sloppy(y)
