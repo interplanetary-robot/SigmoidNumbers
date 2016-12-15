@@ -15,18 +15,10 @@ function +{N}(lhs::MLSigmoid{N}, rhs::MLSigmoid{N})
   if (lhs_sgn != rhs_sgn)
     (dif_sgn, dif_exp, dif_frc) = sub_algorithm(lhs_sgn, lhs_exp, lhs_frc, rhs_sgn, rhs_exp, rhs_frc)
 
-    println("sgn: $dif_sgn")
-    println("exp: $dif_exp")
-    println("frc: $(bits(dif_frc))")
-
     if ((dif_frc & @signbit) == 0) && (dif_exp > 0)
       dif_exp -= 1
       dif_frc <<= 1
     end
-    println("----")
-    println("sgn: $dif_sgn")
-    println("exp: $dif_exp")
-    println("frc: $(bits(dif_frc))")
 
     build_arithmetic(MLSigmoid{N}, dif_sgn, dif_exp, dif_frc)
   else
