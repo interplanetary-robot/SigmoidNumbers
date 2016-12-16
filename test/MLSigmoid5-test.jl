@@ -69,6 +69,8 @@ M5 = MLSigmoid{5}
 @test "01110" == bits(M5(4.0))
 @test "01111" == bits(M5(8.0))
 
+#test going too far.
+
 #test build_numeric
 
 #test build_arithmetic

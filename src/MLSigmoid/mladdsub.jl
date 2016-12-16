@@ -1,4 +1,4 @@
-import Base: +
+import Base: +, -
 
 function +{N}(lhs::MLSigmoid{N}, rhs::MLSigmoid{N})
   #adding infinities is infinite.
@@ -27,6 +27,9 @@ function +{N}(lhs::MLSigmoid{N}, rhs::MLSigmoid{N})
   end
 end
 
+-{N}(operand::MLSigmoid{N}) = reinterpret(MLSigmoid{N}, -@s(operand))
+-{N}(lhs::MLSigmoid{N}, rhs::MLSigmoid{N}) = lhs + (-rhs)
+
 function sub_algorithm(lhs_sgn, lhs_exp, lhs_frc, rhs_sgn, rhs_exp, rhs_frc)
   ## assign top and bottom fractions, ascertain the final sign, and set the
   ## exponential realm.
@@ -35,11 +38,11 @@ function sub_algorithm(lhs_sgn, lhs_exp, lhs_frc, rhs_sgn, rhs_exp, rhs_frc)
     bot_frc = rhs_frc >> (lhs_exp - rhs_exp)
     diff_sgn = lhs_sgn
     diff_exp = lhs_exp
-  elseif (lhs_exp > rhs_exp)
+  elseif (rhs_exp > lhs_exp)
     top_frc = rhs_frc
     bot_frc = lhs_frc >> (rhs_exp - lhs_exp)
-    diff_sgn = lhs_sgn
-    diff_exp = lhs_exp
+    diff_sgn = rhs_sgn
+    diff_exp = rhs_exp
   elseif (lhs_frc > rhs_frc)
     top_frc = lhs_frc
     bot_frc = rhs_frc
@@ -48,8 +51,8 @@ function sub_algorithm(lhs_sgn, lhs_exp, lhs_frc, rhs_sgn, rhs_exp, rhs_frc)
   else
     top_frc = rhs_frc
     bot_frc = lhs_frc
-    diff_sgn = lhs_sgn
-    diff_exp = lhs_exp
+    diff_sgn = rhs_sgn
+    diff_exp = rhs_exp
   end
 
   #subtract the two from each other, with carry check.
@@ -60,6 +63,11 @@ function sub_algorithm(lhs_sgn, lhs_exp, lhs_frc, rhs_sgn, rhs_exp, rhs_frc)
     #decrease the exponent - note that this can't be less than zero.
     diff_exp -= 1
     diff_frc = (diff_frc << 1)
+  else
+    #do shifting
+    shiftcount = min(leading_zeros(diff_frc), diff_exp)
+    diff_exp -= shiftcount
+    diff_frc <<= shiftcount
   end
 
   #return the base sign, the adjusted exponent, and the result fraction.
