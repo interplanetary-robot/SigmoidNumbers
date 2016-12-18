@@ -1,4 +1,4 @@
-M7 = MLSigmoid{7}
+M7 = Posits{7}
 
 #and a general purpose function for testing an operation against a matrix
 function testop(op, iterable)
@@ -24,3 +24,4 @@ end
 testop(+, M7)
 testop(-, M7)
 testop(*, M7)
+testop(/, M7)

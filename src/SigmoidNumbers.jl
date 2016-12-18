@@ -7,6 +7,6 @@ module SigmoidNumbers
   include("h-layer.jl")
   include("iterators.jl")
 
-  include("MLSigmoid/mlsigmoid.jl")
+  include("Posits/posits.jl")
 
 end # module

@@ -17,14 +17,14 @@ end
 
 bitstype __BITS Sigmoid{N, mode} <: AbstractFloat
 
-typealias MLSigmoid{N} Sigmoid{N, :guess}
-typealias UBSigmoid{N} Sigmoid{N, :ubits}
+typealias Posits{N} Sigmoid{N, :guess}
+typealias Universals{N} Sigmoid{N, :ubits}
 
-type SigBound{N} <: AbstractFloat
-  lower::UBSigmoid{N}
-  upper::UBSigmoid{N}
+type UBound{N} <: AbstractFloat
+  lower::Universals{N}
+  upper::Universals{N}
 end
 
-export MLSigmoid
-export UBSigmoid
-export SigBound
+export Posits
+export Universals
+export UBound

@@ -1,9 +1,9 @@
 import Base: +, -
 
-function +{N}(lhs::MLSigmoid{N}, rhs::MLSigmoid{N})
+function +{N}(lhs::Posits{N}, rhs::Posits{N})
   #adding infinities is infinite.
-  isfinite(lhs) || return reinterpret(MLSigmoid{N}, @signbit)
-  isfinite(rhs) || return reinterpret(MLSigmoid{N}, @signbit)
+  isfinite(lhs) || return reinterpret(Posits{N}, @signbit)
+  isfinite(rhs) || return reinterpret(Posits{N}, @signbit)
   #adding zeros is zero
   iszero(lhs) && return rhs
   iszero(rhs) && return lhs
@@ -20,15 +20,15 @@ function +{N}(lhs::MLSigmoid{N}, rhs::MLSigmoid{N})
       dif_frc <<= 1
     end
 
-    build_arithmetic(MLSigmoid{N}, dif_sgn, dif_exp, dif_frc)
+    build_arithmetic(Posits{N}, dif_sgn, dif_exp, dif_frc)
   else
     (sum_exp, sum_frc) = add_algorithm(lhs_exp, lhs_frc, rhs_exp, rhs_frc)
-    build_arithmetic(MLSigmoid{N}, lhs_sgn, sum_exp, sum_frc)
+    build_arithmetic(Posits{N}, lhs_sgn, sum_exp, sum_frc)
   end
 end
 
--{N}(operand::MLSigmoid{N}) = reinterpret(MLSigmoid{N}, -@s(operand))
--{N}(lhs::MLSigmoid{N}, rhs::MLSigmoid{N}) = lhs + (-rhs)
+-{N}(operand::Posits{N}) = reinterpret(Posits{N}, -@s(operand))
+-{N}(lhs::Posits{N}, rhs::Posits{N}) = lhs + (-rhs)
 
 function sub_algorithm(lhs_sgn, lhs_exp, lhs_frc, rhs_sgn, rhs_exp, rhs_frc)
   ## assign top and bottom fractions, ascertain the final sign, and set the

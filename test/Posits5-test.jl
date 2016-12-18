@@ -1,4 +1,4 @@
-M5 = MLSigmoid{5}
+M5 = Posits{5}
 
 #begin comprehensive testing of conversion from Float64 -> M5
 @test M5(0b10000) == M5(Inf)

@@ -8,7 +8,7 @@ isfinite{N, mode}(x::Sigmoid{N, mode}) = (@u(x) != @signbit)
 
 typealias IEEEFloat Union{Float16, Float32, Float64}
 
-@generated function (::Type{F}){F <: IEEEFloat, N}(x::MLSigmoid{N})
+@generated function (::Type{F}){F <: IEEEFloat, N}(x::Posits{N})
   FInt  = Dict(Float16 => UInt16, Float32 => UInt32, Float64 => UInt64)[F]
   fbits = Dict(Float16 => 16    , Float32 => 32,     Float64 => 64)[F]
   ebits = Dict(Float16 => 5     , Float32 => 8,      Float64 => 11)[F]

@@ -1,6 +1,6 @@
 
 include("rounding.jl")
 
-include("mladdsub.jl")
-include("mlmul.jl")
+include("addsub.jl")
+include("muldiv.jl")
 include("mlfunctions.jl")
