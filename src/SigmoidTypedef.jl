@@ -17,6 +17,17 @@ end
 
 bitstype __BITS Sigmoid{N, mode} <: AbstractFloat
 
+#these are deliberately made incompatible with the standard rounding modes types
+#found in the julia std library.
+
+const roundingmodes = [:guess,
+  :ubit,
+  :roundup,
+  :rounddn,
+  :roundin,
+  :roundout]
+
+#uses the rounding mode types:
 typealias Posits{N} Sigmoid{N, :guess}
 typealias Universals{N} Sigmoid{N, :ubits}
 

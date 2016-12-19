@@ -34,6 +34,11 @@ M5 = Posits{5}
 @test M5(0b01110) == M5(4.0)
 @test M5(0b01111) == M5(8.0)
 
+#test overflowing.
+@test M5(0b01111) == M5(10.0)
+@test M5(0b01111) == M5(16.0)
+@test M5(0b01111) == M5(12345678.9)
+@test M5(0b00001) == M5(0.0001)
 
 #test h-layer stuff
 @test "10000" == bits(M5(Inf))

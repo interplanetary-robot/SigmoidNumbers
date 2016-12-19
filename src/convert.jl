@@ -8,7 +8,7 @@ isfinite{N, mode}(x::Sigmoid{N, mode}) = (@u(x) != @signbit)
 
 typealias IEEEFloat Union{Float16, Float32, Float64}
 
-@generated function (::Type{F}){F <: IEEEFloat, N}(x::Posits{N})
+@generated function (::Type{F}){F <: IEEEFloat, N, mode}(x::Sigmoid{N, mode})
   FInt  = Dict(Float16 => UInt16, Float32 => UInt32, Float64 => UInt64)[F]
   fbits = Dict(Float16 => 16    , Float32 => 32,     Float64 => 64)[F]
   ebits = Dict(Float16 => 5     , Float32 => 8,      Float64 => 11)[F]
@@ -73,7 +73,7 @@ function (::Type{Sigmoid{N, mode}}){N, mode, F <: IEEEFloat}(f::F)
   isfinite(f) || return reinterpret(Sigmoid{N, mode}, @signbit)
   (f == zero(F)) && return reinterpret(Sigmoid{N, mode}, zero(@UInt))
   #retrieve the floating point triplet.
-  build_numeric(Sigmoid{N, mode}, fptrip(f)...)
+  __round(build_numeric(Sigmoid{N, mode}, fptrip(f)...))
 end
 
 @generated function (::Type{Sigmoid{N, mode}}){N, mode, UI <: Unsigned}(i::UI)

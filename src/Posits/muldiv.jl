@@ -25,7 +25,7 @@ function *{N}(lhs::Posits{N}, rhs::Posits{N})
   mul_frc <<= shift + 1
   mul_exp -= shift
 
-  build_arithmetic(Posits{N}, mul_sgn, mul_exp, mul_frc)
+  __round(build_arithmetic(Posits{N}, mul_sgn, mul_exp, mul_frc))
 end
 
 @generated function Base.:/{N}(lhs::Posits{N}, rhs::Posits{N})
@@ -53,7 +53,7 @@ end
     #do something different if rhs_frc is zero.
     if rhs_frc == 0
       div_exp = lhs_exp * (lhs_inv ? - 1 : 1) - rhs_exp * (rhs_inv ? - 1 : 1)
-      return build_numeric(Posits{N}, div_sgn, div_exp, lhs_frc)
+      return __round(build_numeric(Posits{N}, div_sgn, div_exp, lhs_frc))
     end
 
     #the multiplicative exponent is the product of the two exponents.
@@ -91,6 +91,6 @@ end
 
     div_frc = demoteright(cumulative_quotient)
 
-    build_numeric(Posits{N}, div_sgn, div_exp + power_gain, div_frc)
+    __round(build_numeric(Posits{N}, div_sgn, div_exp + power_gain, div_frc))
   end
 end

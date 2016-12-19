@@ -20,10 +20,10 @@ function +{N}(lhs::Posits{N}, rhs::Posits{N})
       dif_frc <<= 1
     end
 
-    build_arithmetic(Posits{N}, dif_sgn, dif_exp, dif_frc)
+    __round(build_arithmetic(Posits{N}, dif_sgn, dif_exp, dif_frc))
   else
     (sum_exp, sum_frc) = add_algorithm(lhs_exp, lhs_frc, rhs_exp, rhs_frc)
-    build_arithmetic(Posits{N}, lhs_sgn, sum_exp, sum_frc)
+    __round(build_arithmetic(Posits{N}, lhs_sgn, sum_exp, sum_frc))
   end
 end
 
