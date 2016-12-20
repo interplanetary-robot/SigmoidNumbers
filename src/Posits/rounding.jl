@@ -28,7 +28,6 @@
       #eliminate values that go up to zero.
       (truncated_value == -$innerbit) && return reinterpret($T, -$innerbit)
 
-
       #first look to see if the checkbit is set.  If it's zero, round down.
       ($checkbit & @u(x) == $z) && return reinterpret($T, truncated_value)
       #either the extrabits is nonzero or the checkmask is nonzero:  truncate then add one.

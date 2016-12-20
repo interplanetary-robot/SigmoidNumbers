@@ -30,8 +30,9 @@ end
 
 @generated function Base.:/{N}(lhs::Posits{N}, rhs::Posits{N})
   #calculate the number of rounds we should apply the goldschmidt method.
-  rounds = Int(ceil(log(2,7))) + 2
+  rounds = Int(ceil(log(2,N))) + 1
   top_bit = promote(one(@UInt) << (__BITS - 1))
+  bot_bit = (one(@UInt) << (__BITS - N - 1))
   quote
     #dividing infinities or by zero is infinite.
     isfinite(lhs) || return reinterpret(Posits{N}, @signbit)
@@ -58,6 +59,10 @@ end
 
     #the multiplicative exponent is the product of the two exponents.
     div_exp = lhs_exp * (lhs_inv ? - 1 : 1) - rhs_exp * (rhs_inv ? - 1 : 1) - 1
+
+    #calculate the number of zeros in the solution.
+    lhs_zeros = trailing_zeros(lhs_frc) - (__BITS - N)
+    rhs_zeros = trailing_zeros(rhs_frc) - (__BITS - N)
 
     cumulative_quotient = promote(lhs_frc)
     cumulative_zpower   = promote(-rhs_frc) >> 1
@@ -90,6 +95,17 @@ end
     end
 
     div_frc = demoteright(cumulative_quotient)
+
+    result_ones = trailing_ones(div_frc >> (__BITS - N))
+
+    if (result_ones + rhs_zeros == lhs_zeros + N + 1)
+      #increment the lowest bit
+      div_frc += $bot_bit
+      #mask out all the other ones that were trailing.
+      div_frc &= -$bot_bit
+    end
+
+    num = build_numeric(Posits{N}, div_sgn, div_exp + power_gain, div_frc)
 
     __round(build_numeric(Posits{N}, div_sgn, div_exp + power_gain, div_frc))
   end
