@@ -34,7 +34,7 @@ pseudologistic_sloppy{N}(x::Posits{N}) = reinterpret(Posits{N}, (@u(x) $ @signbi
   mask = @mask(N)
   quote
     isfinite(x) || throw(ArgumentError("pseudologistic function is undefined for infinity"))
-    reinterpret(Posits{N}, (@u(pseudologistic_sloppy(x)) & $mask))
+    __round(reinterpret(Posits{N}, (@u(pseudologistic_sloppy(x)) & $mask)))
   end
 end
 
@@ -49,6 +49,7 @@ delta_psl{N}(y::Posits{N}) = delta_psl_careful(y)
 delta_psl_sloppy(y) = y * oneminus_sloppy(y)
 function delta_psl_careful{N}(y::Posits{N})
   @unitrange_check(y, :delta_psl)
+  __round(delta_psl_sloppy(y))
 end
 
 doc"""
@@ -63,7 +64,7 @@ pseudohalfcost{N}(y::Posits{N}) = pseudohalfcost_careful(y)
 pseudohalfcost_sloppy{N}(y::Posits{N}) = reinterpret(Posits{N}, @u(y) << 1)
 function pseudohalfcost_careful{N}(y::Posits{N})
   @unitrange_check(y, :pseudohalfcost)
-  pseudohalfcost_sloppy(y)
+  __round(pseudohalfcost_sloppy(y))
 end
 
 doc"""
@@ -78,6 +79,6 @@ pseudosoftplus_sloppy{N}(x::Posits{N}) = reinterpret(Posits{N}, (@u(x) $ @signbi
 @generated function pseudosoftplus_careful{N}(x::Posits{N})
   mask = @mask(N)
   quote
-    reinterpret(Posits{N}, @u(pseudosoftplus_sloppy(x)) & $mask)
+    __round(reinterpret(Posits{N}, @u(pseudosoftplus_sloppy(x)) & $mask))
   end
 end
