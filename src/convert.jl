@@ -2,13 +2,14 @@
 
 #let's put these functions here. We'll move them later.
 import Base.isfinite
+import Base.convert
 
 iszero{N, mode}(x::Sigmoid{N, mode}) = (@s(x) == 0)
 isfinite{N, mode}(x::Sigmoid{N, mode}) = (@u(x) != @signbit)
 
 typealias IEEEFloat Union{Float16, Float32, Float64}
 
-@generated function (::Type{F}){F <: IEEEFloat, N, mode}(x::Sigmoid{N, mode})
+@generated function convert{F <: IEEEFloat, N, mode}(::Type{F}, x::Sigmoid{N, mode})
   FInt  = Dict(Float16 => UInt16, Float32 => UInt32, Float64 => UInt64)[F]
   fbits = Dict(Float16 => 16    , Float32 => 32,     Float64 => 64)[F]
   ebits = Dict(Float16 => 5     , Float32 => 8,      Float64 => 11)[F]
@@ -68,7 +69,7 @@ doc"""
   end
 end
 
-function (::Type{Sigmoid{N, mode}}){N, mode, F <: IEEEFloat}(f::F)
+function convert{N, mode, F <: IEEEFloat}(::Type{Sigmoid{N, mode}}, f::F)
   #handle the two corner cases of infinity and zero.
   isfinite(f) || return reinterpret(Sigmoid{N, mode}, @signbit)
   (f == zero(F)) && return reinterpret(Sigmoid{N, mode}, zero(@UInt))
