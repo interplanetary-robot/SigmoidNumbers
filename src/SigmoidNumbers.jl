@@ -6,6 +6,8 @@ module SigmoidNumbers
   include("convert.jl")
   include("h-layer.jl")
   include("iterators.jl")
+  include("constants.jl")
+  include("cmp.jl")
 
   include("Posits/posits.jl")
 

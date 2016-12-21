@@ -9,6 +9,11 @@ isfinite{N, mode}(x::Sigmoid{N, mode}) = (@u(x) != @signbit)
 
 typealias IEEEFloat Union{Float16, Float32, Float64}
 
+function convert{N, mode, I <: Signed}(T::Type{Sigmoid{N, mode}}, int::I)
+  warn("conversion from integers not yet properly supported! $int")
+  convert(T, convert(Float64, int))
+end
+
 @generated function convert{F <: IEEEFloat, N, mode}(::Type{F}, x::Sigmoid{N, mode})
   FInt  = Dict(Float16 => UInt16, Float32 => UInt32, Float64 => UInt64)[F]
   fbits = Dict(Float16 => 16    , Float32 => 32,     Float64 => 64)[F]

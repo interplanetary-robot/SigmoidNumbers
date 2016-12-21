@@ -1,4 +1,5 @@
 
+include("convert.jl")
 include("rounding.jl")
 
 include("addsub.jl")
