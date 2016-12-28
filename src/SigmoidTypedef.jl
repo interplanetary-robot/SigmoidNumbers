@@ -28,14 +28,14 @@ const roundingmodes = [:guess,
   :roundout]
 
 #uses the rounding mode types:
-typealias Posits{N} Sigmoid{N, :guess}
-typealias Universals{N} Sigmoid{N, :ubits}
+typealias Posit{N} Sigmoid{N, :guess}
+typealias Valid{N} Sigmoid{N, :ubit}
 
-type UBound{N} <: AbstractFloat
-  lower::Universals{N}
-  upper::Universals{N}
+type VBound{N} <: AbstractFloat
+  lower::Valid{N}
+  upper::Valid{N}
 end
 
-export Posits
-export Universals
-export UBound
+export Posit
+export Valid
+export VBound

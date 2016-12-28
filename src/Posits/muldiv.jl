@@ -1,12 +1,15 @@
 import Base: *
 
-function *{N}(lhs::Posits{N}, rhs::Posits{N})
+*{N}(lhs::Bool, rhs::Posit{N}) = reinterpret(Posit{N}, @s(rhs) * lhs)
+*{N}(lhs::Posit{N}, rhs::Bool) = reinterpret(Posit{N}, @s(lhs) * rhs)
+
+function *{N}(lhs::Posit{N}, rhs::Posit{N})
   #multiplying infinities is infinite.
-  isfinite(lhs) || return reinterpret(Posits{N}, @signbit)
-  isfinite(rhs) || return reinterpret(Posits{N}, @signbit)
+  isfinite(lhs) || return reinterpret(Posit{N}, @signbit)
+  isfinite(rhs) || return reinterpret(Posit{N}, @signbit)
   #mulitplying zeros is zero
-  iszero(lhs) && return reinterpret(Posits{N}, zero(@UInt))
-  iszero(rhs) && return reinterpret(Posits{N}, zero(@UInt))
+  iszero(lhs) && return reinterpret(Posit{N}, zero(@UInt))
+  iszero(rhs) && return reinterpret(Posit{N}, zero(@UInt))
 
   #generate the lhs and rhs subcomponents.
   @breakdown lhs arithmetic
@@ -25,21 +28,21 @@ function *{N}(lhs::Posits{N}, rhs::Posits{N})
   mul_frc <<= shift + 1
   mul_exp -= shift
 
-  __round(build_arithmetic(Posits{N}, mul_sgn, mul_exp, mul_frc))
+  __round(build_arithmetic(Posit{N}, mul_sgn, mul_exp, mul_frc))
 end
 
-@generated function Base.:/{N}(lhs::Posits{N}, rhs::Posits{N})
+@generated function Base.:/{N}(lhs::Posit{N}, rhs::Posit{N})
   #calculate the number of rounds we should apply the goldschmidt method.
   rounds = Int(ceil(log(2,N))) + 1
   top_bit = promote(one(@UInt) << (__BITS - 1))
   bot_bit = (one(@UInt) << (__BITS - N - 1))
   quote
     #dividing infinities or by zero is infinite.
-    isfinite(lhs) || return reinterpret(Posits{N}, @signbit)
-    iszero(rhs) && return reinterpret(Posits{N}, @signbit)
+    isfinite(lhs) || return reinterpret(Posit{N}, @signbit)
+    iszero(rhs) && return reinterpret(Posit{N}, @signbit)
     #dividing zeros or by infinity is zero
-    isfinite(rhs) || return reinterpret(Posits{N}, zero(@UInt))
-    iszero(lhs) && return reinterpret(Posits{N}, zero(@UInt))
+    isfinite(rhs) || return reinterpret(Posit{N}, zero(@UInt))
+    iszero(lhs) && return reinterpret(Posit{N}, zero(@UInt))
 
     const cq_mask = promote(-one(@UInt))
 
@@ -54,7 +57,7 @@ end
     #do something different if rhs_frc is zero.
     if rhs_frc == 0
       div_exp = lhs_exp * (lhs_inv ? - 1 : 1) - rhs_exp * (rhs_inv ? - 1 : 1)
-      return __round(build_numeric(Posits{N}, div_sgn, div_exp, lhs_frc))
+      return __round(build_numeric(Posit{N}, div_sgn, div_exp, lhs_frc))
     end
 
     #the multiplicative exponent is the product of the two exponents.
@@ -105,8 +108,8 @@ end
       div_frc &= -$bot_bit
     end
 
-    num = build_numeric(Posits{N}, div_sgn, div_exp + power_gain, div_frc)
+    num = build_numeric(Posit{N}, div_sgn, div_exp + power_gain, div_frc)
 
-    __round(build_numeric(Posits{N}, div_sgn, div_exp + power_gain, div_frc))
+    __round(build_numeric(Posit{N}, div_sgn, div_exp + power_gain, div_frc))
   end
 end

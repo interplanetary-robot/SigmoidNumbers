@@ -11,6 +11,7 @@ typealias IEEEFloat Union{Float16, Float32, Float64}
 
 function convert{N, mode, I <: Signed}(T::Type{Sigmoid{N, mode}}, int::I)
   warn("conversion from integers not yet properly supported! $int")
+  throw(ErrorException("halp"))
   convert(T, convert(Float64, int))
 end
 
@@ -89,7 +90,7 @@ end
 
   #first check to see that the number of bits in the sigmoid is less than the
   #number of bits in the unsigned integer.
-  int_length = sizeof(UInt8) * 8
+  int_length = sizeof(i) * 8
   (N <= int_length) || throw(ArgumentError("insufficient bits in source integer to represent the sigmoid number."))
   quote
     #assume that the integer representation is right-aligned.  We're going to want

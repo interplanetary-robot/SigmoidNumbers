@@ -1,4 +1,4 @@
-M7 = Posits{7}
+M7 = Posit{7}
 
 #and a general purpose function for testing an operation against a matrix
 function testop(op, iterable)
