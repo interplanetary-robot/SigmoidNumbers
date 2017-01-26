@@ -29,7 +29,7 @@ end
 doc"""
   `SigmoidNumbers.@breakdown(s::Symbol, [:arithmetic | :numeric])`
 
-  takes a sigmoid number referenced by a symbol and creates in the contanining
+  takes a sigmoid number referenced by a symbol and creates in the containing
   scope the following symbols:
 
   s_s::@Int         -signed int value

@@ -24,3 +24,7 @@ end
   dmask = n(zero(dtype) - one(dtype))
   :($dtype(n & $dmask))
 end
+
+function Base.reinterpret{N, ES, mode}(::Type{Sigmoid{N, ES, mode}}, x::Union{@Int, @UInt})
+  reinterpret(SigmoidSmall{N, ES, mode}, x)
+end

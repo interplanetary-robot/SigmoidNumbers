@@ -1,8 +1,10 @@
 module SigmoidNumbers
 
   include("SigmoidTypedef.jl")
-  include("inttools.jl")
   include("macros.jl")
+  include("inttools.jl")
+  include("h-layer.jl")
+  #=
   include("convert.jl")
   include("h-layer.jl")
   include("iterators.jl")
@@ -11,6 +13,6 @@ module SigmoidNumbers
 
   include("fft.jl")
 
-  include("Posits/posits.jl")
+  include("Posits/posits.jl")=#
 
 end # module
