@@ -9,6 +9,8 @@ module SigmoidNumbers
   include("constants.jl")
   include("cmp.jl")
 
+  include("fft.jl")
+
   include("Posits/posits.jl")
 
 end # module

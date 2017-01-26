@@ -2,43 +2,15 @@
 
 using SigmoidNumbers
 using GenML
-using Base.Test
 
-if length(ARGS) > 0
-  PType = Posit{parse(ARGS[1])}
-else
-  PType = Posit{12}
-end
+import SigmoidNumbers.Sigmoid
 
 #assign sigmoid to the pseudologistic
 GenML.TF.sigmoid(x::Posit) = SigmoidNumbers.pseudologistic(x)
-GenML.TF.dasysigmoid(y::Posit) = SigmoidNumbers.delta_psl(y)
+GenML.TF.dasysigmoid(x::Posit) = SigmoidNumbers.delta_psl(x)
 GenML.CF.logloss(x::Posit) = SigmoidNumbers.pseudologcost(x)
 
-xornet = GenML.MLP.MultilayerPerceptron{PType, (2,2,1)}()
-
-#hand-written transition matrices.
-xornet.layers[1].transition = PType[5.0 5.0; -10.0 -10.0]
-xornet.layers[1].bias[:] = PType[-7.5, 7.5]
-xornet.layers[2].transition = PType[-10.0 -10.0]
-xornet.layers[2].bias[:] = PType[5.0]
-
-#test the possible input/output pairs.
-
-println("attempting premade xor neural net, with posit $PType")
-
-@test xornet([true, true])[1] < PType(0.5)
-@test xornet([true, false])[1] > PType(0.5)
-@test xornet([false, true])[1] > PType(0.5)
-@test xornet([false, false])[1] < PType(0.5)
-
-println("execution of premade xor neural net successful with $PType")
-
-println("attempting to train xor neural net, with posit $PType")
-
-Base.randn(::Type{PType}, dims::Integer...) = map(PType, randn(dims...))
-
-function xortrain()
+function xortrain(PType)
 
   println("working on unreliable xor data set with backpropagation")
 
@@ -68,4 +40,20 @@ function xortrain()
   return wrongcount
 end
 
-xortrain() == 0 || xortrain() == 0 || xortrain() == 0 || xortrain() == 0 || xortrain() == 0 || xortrain() == 0 || xortrain() == 0 || xortrain() == 0
+Base.randn{PType <: Sigmoid}(::Type{PType}, dims::Integer...) = map(PType, randn(dims...))
+
+
+const trials = 1000
+
+for nindex = 16:-1:6
+  results = zeros(Int, trials)
+
+  PType = Posit{nindex}
+
+  for idx = 1:trials
+    println("posit $(PType): round $idx")
+    results[idx] = xortrain(PType)
+  end
+
+  writedlm(string("./results/posit-widened-$nindex.csv"), results, ',')
+end

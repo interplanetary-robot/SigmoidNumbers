@@ -1,0 +1,70 @@
+using SigmoidNumbers
+
+if length(ARGS) < 2
+  print("""
+  USE:
+  julia fft.jl [vector_length] [posit_precision] [distribution = {-1:0:1}]
+
+  executes a fast fourier transform/inverse transform of a random vector and
+  measures the deviation from the original in standard floats or posits.
+
+  julia fft.jl 1024 32
+  julia fft.jl 256  16 randn
+  """)
+
+  exit()
+end
+
+vector_size = parse(ARGS[1])
+posit_precision = parse(ARGS[2])
+
+F = posit_precision <= 16 ? Float16 : Float32
+P = Posit{posit_precision}
+
+if length(ARGS) < 3
+  randomizer() = rand(-1:1, vector_size)
+elseif ARGS[3] == "randn"
+  randomizer() = randn(vector_size)
+elseif ARGS[3] == "rand"
+  randomizer() = rand(vector_size)
+end
+
+
+function ffttest()
+
+  sv = randomizer()
+
+  v = F.(sv)
+  t = custom_ifft(custom_fft(v))
+  d = sum(abs.(Complex{Float64}.(t .- v)))
+  println("$F deviation: ", d)
+
+  vp = P.(sv)
+  tp = custom_ifft(custom_fft(vp))
+  dp = sum(abs.(Complex{Float64}.(tp .- vp)))
+  println("$P deviation: ", dp)
+
+
+  v = F.(sv)
+  t = custom_ifft(custom_fft(v, normalize=:always), normalize=:always)
+  d = sum(abs.(Complex{Float64}.(t .- v)))
+  println("$F deviation: ", d)
+
+  vp = P.(sv)
+  tp = custom_ifft(custom_fft(vp, normalize=:always), normalize=:always)
+  dp = sum(abs.(Complex{Float64}.(tp .- vp)))
+  println("$P deviation: ", dp)
+
+  v = F.(sv)
+  t = custom_ifft(custom_fft(v, normalize=:continuous), normalize=:continuous)
+  d = sum(abs.(Complex{Float64}.(t .- v)))
+  println("$F deviation: ", d)
+
+  vp = P.(sv)
+  tp = custom_ifft(custom_fft(vp, normalize=:continuous), normalize=:continuous)
+  dp = sum(abs.(Complex{Float64}.(tp .- vp)))
+  println("$P deviation: ", dp)
+
+end
+
+ffttest()

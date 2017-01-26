@@ -10,8 +10,8 @@ isfinite{N, mode}(x::Sigmoid{N, mode}) = (@u(x) != @signbit)
 typealias IEEEFloat Union{Float16, Float32, Float64}
 
 function convert{N, mode, I <: Signed}(T::Type{Sigmoid{N, mode}}, int::I)
-  warn("conversion from integers not yet properly supported! $int")
-  throw(ErrorException("halp"))
+  #warn("conversion from integers not yet properly supported! $int")
+  #throw(ErrorException("halp"))
   convert(T, convert(Float64, int))
 end
 
@@ -131,3 +131,5 @@ function build_arithmetic{N, mode}(::Type{Sigmoid{N,mode}}, sign, exponent, frac
 
   reinterpret(Sigmoid{N, mode}, sign ? -absval : absval)
 end
+
+Base.promote_rule{T<:Sigmoid}(::Type{T}, ::Type{Int64}) = T

@@ -31,10 +31,9 @@ doc"""
 pseudologistic{N}(x::Posit{N}) = pseudologistic_careful(x)
 pseudologistic_sloppy{N}(x::Posit{N}) = reinterpret(Posit{N}, (@u(x) $ @signbit) >> 2)
 @generated function pseudologistic_careful{N}(x::Posit{N})
-  mask = @mask(N)
   quote
     isfinite(x) || throw(ArgumentError("pseudologistic function is undefined for infinity"))
-    __round(reinterpret(Posit{N}, (@u(pseudologistic_sloppy(x)) & $mask)))
+    __round(pseudologistic_sloppy(x))
   end
 end
 
