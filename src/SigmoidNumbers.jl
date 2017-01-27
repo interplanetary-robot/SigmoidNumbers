@@ -3,6 +3,7 @@ module SigmoidNumbers
   include("SigmoidTypedef.jl")
   include("macros.jl")
   include("inttools.jl")
+  include("sigtools.jl")
   include("h-layer.jl")
   #=
   include("convert.jl")

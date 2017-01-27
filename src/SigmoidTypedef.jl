@@ -58,7 +58,7 @@ export Sigmoid, Posit, Valid, VBound
 
 function (::Type{Posit{N, ES}}){N, ES}(x)
   if N < __BITS
-    SigmoidSmall{N, ES, :guess}(x)
+    reinterpret(SigmoidSmall{N, ES, :guess}, x)
   else
     SigmoidLarge{N, ES, :guess}(x)
   end
@@ -66,7 +66,7 @@ end
 
 function (::Type{Valid{N, ES}}){N, ES}(x)
   if N < __BITS
-    SigmoidSmall{N, 0, :ubit}(x)
+    reinterpret(SigmoidSmall{N, ES, :ubit}, x)
   else
     SigmoidLarge{N, 0, :ubit}(x)
   end
@@ -74,7 +74,7 @@ end
 
 function (::Type{Sigmoid{N, ES, mode}}){N, ES, mode}(x)
   if N < __BITS
-    SigmoidSmall{N, 0, :ubit}(x)
+    reinterpret(SigmoidSmall{N, 0, :ubit}, x)
   else
     SigmoidLarge{N, 0, :ubit}(x)
   end

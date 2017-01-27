@@ -3,16 +3,42 @@ import Base: bits, show
 
 bits{N, ES, mode}(x::Sigmoid{N, ES, mode}) = bits(reinterpret(@UInt, x))[1:N]
 function bits{N, ES, mode}(x::Sigmoid{N, ES, mode}, separator::AbstractString)
+  #we're going to create this as a string array, then join() it at the end.
+  stringarray = Vector{String}()
+
   bitstring = bits(x)
-  signstring = bitstring[1]
-  r_length = 1 + regimelength(x)
-  regimestring = bitstring[2:r_length]
-  exponentstring = bitstring[r_length+1:min(r_length + ES, N)]
-  if (r_length + ES < N)
-    join((signstring, regimestring, exponentstring), separator)
-  else
-    join((signstring, regimestring, exponentstring, bitstring[r_length + ES + 1:end]), separator)
+
+  push!(stringarray, bitstring[1:1])
+  seek_idx = 2
+  term_idx = N - (mode == :ubit) #store the index of termination.
+
+  #calculate how many regime bits there are
+  r_length = regimebits(x)
+
+  push!(stringarray, bitstring[seek_idx:(seek_idx + r_length - 1)])
+  seek_idx += r_length
+
+  (seek_idx > term_idx) && @goto finish
+
+  if (ES > 0)
+    if ((seek_idx + ES) < term_idx)
+      push!(stringarray, bitstring[seek_idx:seek_idx + ES - 1])
+      seek_idx += ES
+    else
+      push!(stringarray, bitstring[seek_idx:term_idx])
+      @goto finish
+    end
   end
+
+  push!(stringarray, bitstring[seek_idx:term_idx])
+
+  @label finish
+
+  if mode == :ubit
+    push!(stringarray, bitstring[end:end])
+  end
+
+  return join(stringarray, separator)
 end
 
 function show{N, ES, mode}(io::IO, x::Sigmoid{N, ES, mode})
@@ -26,6 +52,7 @@ function show{N, ES, mode}(io::IO, x::Sigmoid{N, ES, mode})
 
   print(io, "(0x$innerval)")
 end
+
 
 @generated function show{T<:Sigmoid}(io::IO, ::Type{T})
   _N  = N(T)

@@ -28,3 +28,5 @@ end
 function Base.reinterpret{N, ES, mode}(::Type{Sigmoid{N, ES, mode}}, x::Union{@Int, @UInt})
   reinterpret(SigmoidSmall{N, ES, mode}, x)
 end
+
+const sign_mask = (@UInt)(1) << (__BITS - 1)
