@@ -103,28 +103,29 @@ macro breakdown(x...)
       #the number.  This is leading zeros for less than one, and leading ones for
       #greater than one.  Since greater than one starts at exponent zero, subtract
       #one in that case.
-      $x_reg::Int = ($x_inv ? clz(x) : (clo(x) - 1)) - 1
+
+      $x_reg::Int = (($x_inv) ? leading_zeros($u_x) : leading_ones($u_x | @signbit)) - 1 - !$x_inv
+
+      if (mode == :ubit)
+        ($x_reg = min($x_reg, N - 3))
+        const __UB_mask = ((@signbit) >> (N - 1))
+      else
+        const __UB_mask = zero(@UInt)
+      end
 
       $x_exp::Int = $x_reg * ($x_inv ? -1 : 1) * (1 << ES)
 
       if (ES != 0)
         const __ES_mask = (1 << ES) - 1
         #it's OK if this is negative, yo.
-        __ES_shift = __BITS - ES - 3 - $x_reg
-        $x_exp += (($u_x >> __ES_shift) & __ES_mask)
-      end
+        __ES_shift = __BITS - ES - 3 - $x_reg + $x_inv
 
-      $x_ubt = false
-
-      if (mode == :ubit)
-        const __UB_mask = ((@signbit) >> (N - 1))
-        $x_ubt = ($u_x & __UB_mask != 0)
-        $x_frc = ($u_x & ~__UB_mask) << ($x_reg + ($x_inv ? 2 : 3) + ES)
-      else
-        #flush the fraction all the way to the left.  This also means we don't have to
-        #do any masking operations for higher order bits.
-        $x_frc = $u_x << ($x_reg + ($x_inv ? 2 : 3) + ES)
+        $x_exp += @s(((($u_x & ~__UB_mask) >> __ES_shift) & __ES_mask))
       end
+      #mask out the ubit, then flush the fraction all the way to the left.  This
+      #also means we don't have to do any masking operations for higher order bits.
+      $x_ubt = ($u_x & __UB_mask != 0)
+      $x_frc = ($u_x & ~__UB_mask) << ($x_reg + ($x_inv ? 2 : 3) + ES)
     end)
   else
     esc(quote
