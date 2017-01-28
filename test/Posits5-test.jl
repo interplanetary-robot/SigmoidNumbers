@@ -1,4 +1,4 @@
-M5 = Posit{5}
+M5 = Posit{5, 0}
 
 #begin comprehensive testing of conversion from Float64 -> M5
 @test M5(0b10000) == M5(Inf)
@@ -73,7 +73,6 @@ M5 = Posit{5}
 @test "01101" == bits(M5(3.0))
 @test "01110" == bits(M5(4.0))
 @test "01111" == bits(M5(8.0))
-
 #test going too far.
 
 #test build_numeric

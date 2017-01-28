@@ -1,7 +1,7 @@
 
 #an internal function that performs rounding.  You can provide other __round
 #implementations if you do "other" rounding modes.
-@generated function __round{N}(x::Sigmoid{N, :guess}, extrabits::(@UInt))
+@generated function __round{N, ES}(x::SigmoidSmall{N, ES, :guess}, extrabits::(@UInt) = zero(@UInt))
   #for convenience, store the type of x as T.
   T = x
   z = zero(@UInt)
@@ -50,5 +50,3 @@
     end
   end
 end
-
-__round{N, mode}(x::Sigmoid{N, mode}) = __round(x, zero(@UInt))

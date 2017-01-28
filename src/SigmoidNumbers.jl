@@ -5,15 +5,13 @@ module SigmoidNumbers
   include("inttools.jl")
   include("sigtools.jl")
   include("h-layer.jl")
-  #=
+
+  include("Math/iterators.jl")
+  include("Math/cmp.jl")
+  include("Math/constants.jl")
+
   include("convert.jl")
-  include("h-layer.jl")
-  include("iterators.jl")
-  include("constants.jl")
-  include("cmp.jl")
 
-  include("fft.jl")
-
-  include("Posits/posits.jl")=#
+  include("Posits/posits.jl")
 
 end # module
