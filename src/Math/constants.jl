@@ -1,7 +1,7 @@
 import Base: one, zero, realmax, eps, issubnormal, isnan, isfinite
 
-one{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}) = reinterpret(T, @invertbit)
-zero{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}) = reinterpret(T, zero(@UInt))
+one{N, ES, mode}(T::Type{SigmoidSmall{N, ES, mode}}) = reinterpret(T, @invertbit)
+zero{N, ES, mode}(T::Type{SigmoidSmall{N, ES, mode}}) = reinterpret(T, zero(@UInt))
 
 @generated function realmax{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}})
   v = (@signbit) - increment(T)

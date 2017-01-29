@@ -9,9 +9,11 @@ module SigmoidNumbers
   include("Math/iterators.jl")
   include("Math/cmp.jl")
   include("Math/constants.jl")
+  include("Math/addsub.jl")
 
   include("convert.jl")
 
   include("Posits/posits.jl")
+
 
 end # module

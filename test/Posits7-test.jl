@@ -67,6 +67,7 @@ M7_2 = Posit{7,2}
 @test M7_1(0b011110_1)  == M7_1(128.0)
 @test M7_1(0b0111110)   == M7_1(256.0)
 @test M7_1(0b0111111)   == M7_1(1024.0)
+
 @test M7_2(0b0000000)   == M7_2(0.0)
 @test M7_2(0b0000001)   == M7_2(0.00000095367431640625)
 @test M7_2(0b000001_0)  == M7_2(0.0000152587890625)
@@ -84,7 +85,6 @@ M7_2 = Posit{7,2}
 @test M7_2(0b0001_11_0) == M7_2(0.03125)
 @test M7_2(0b0001_11_1) == M7_2(0.046875)
 @test M7_2(0b001_00_00) == M7_2(0.0625)
-
 @test M7_2(0b001_00_01) == M7_2(0.078125)
 @test M7_2(0b001_00_10) == M7_2(0.09375)
 @test M7_2(0b001_00_11) == M7_2(0.109375)
@@ -133,11 +133,21 @@ M7_2 = Posit{7,2}
 @test M7_2(0b0111110)   == M7_2(65536.0)
 @test M7_2(0b0111111)   == M7_2(1048576.0)
 
-#=
+#test cross-conversions.
+for tile in M7_1
+  @test tile == M7_1(Float64(tile))
+end
+
+for tile in M7_2
+  @test tile == M7_2(Float64(tile))
+end
+
+
+
 #and a general purpose function for testing an operation against a matrix
 function testop(op, iterable)
   fails = 0
-  totalsize = length(iterable)
+  totalsize = length(iterable) * length(iterable)
   for STile1 in iterable, STile2 in iterable
     fval1 = Float64(STile1)
     fval2 = Float64(STile2)
@@ -157,16 +167,15 @@ end
 
 testop(+, M7)
 testop(-, M7)
-testop(*, M7)
-testop(/, M7)
+#testop(*, M7)
+#testop(/, M7)
 
 testop(+, M7_1)
-testop(-, M7_1)
-testop(*, M7_1)
-testop(/, M7_1)
+#testop(-, M7_1)
+#testop(*, M7_1)
+#testop(/, M7_1)
 
 testop(+, M7_2)
-testop(-, M7_2)
-testop(*, M7_2)
-testop(/, M7_2)
-=#
+#testop(-, M7_2)
+#testop(*, M7_2)
+#testop(/, M7_2)

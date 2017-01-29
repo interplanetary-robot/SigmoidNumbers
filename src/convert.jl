@@ -104,7 +104,7 @@ function build_numeric{N, ES, mode}(::Type{SigmoidSmall{N, ES, mode}}, sign, exp
       regime -= 1
       subexponent += 1 << ES
     end
-    
+
     fshift = -regime + 2 + ES
 
     body = (one(@UInt) << ES) | subexponent
@@ -146,7 +146,7 @@ function build_numeric{N, mode}(::Type{SigmoidSmall{N, 0, mode}}, sign, exponent
 end
 
 #build_arithmetic is restricted to ES == 0 sigmoids.
-function build_arithmetic{N, mode}(::Type{Sigmoid{N, 0, mode}}, sign, exponent, fraction)
+function build_arithmetic{N, mode}(::Type{SigmoidSmall{N, 0, mode}}, sign, exponent, fraction)
   normal = (fraction & @signbit) != 0
   #check if it's denormal.  If it is, then we don't shift.
   fshift = normal * (exponent + 1) + 1
