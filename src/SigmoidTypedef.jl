@@ -53,6 +53,12 @@ end
 
 export Sigmoid, Posit, Valid, VBound
 
+#sigmoid numbers don't natively have NaN, so NaNs should all be noisy.
+type NaNError <: Exception
+  operand::Function
+  parameters::Array{Any,1}
+end
+
 ################################################################################
 # aliasing constructors
 

@@ -10,6 +10,7 @@ module SigmoidNumbers
   include("Math/cmp.jl")
   include("Math/constants.jl")
   include("Math/addsub.jl")
+  include("Math/muldiv.jl")
 
   include("convert.jl")
 

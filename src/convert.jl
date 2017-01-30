@@ -72,7 +72,8 @@ doc"""
 end
 
 function convert{S <: SigmoidSmall, F <: IEEEFloat}(::Type{S}, f::F)
-  #handle the two corner cases of infinity and zero.
+  #handle the three corner cases of NaN, infinity and zero.
+  isnan(f) && throw(NaNError(convert, [S, f]))
   isfinite(f) || return reinterpret(S, @signbit)
   (f == zero(F)) && return reinterpret(S, zero(@UInt))
   #retrieve the floating point triplet.

@@ -142,18 +142,33 @@ for tile in M7_2
   @test tile == M7_2(Float64(tile))
 end
 
-
-
 #and a general purpose function for testing an operation against a matrix
-function testop(op, iterable)
+function testop(op, iterable; exceptions = [])
   fails = 0
   totalsize = length(iterable) * length(iterable)
   for STile1 in iterable, STile2 in iterable
     fval1 = Float64(STile1)
     fval2 = Float64(STile2)
 
-    exp = iterable(op(fval1, fval2))
+    texp = op(fval1, fval2)
+
+    if isnan(texp) || (length(exceptions) > 0) && ([fval1, fval2] == exceptions) #catch NaN values.
+      ok::Bool = false
+      try
+        op(STile1, STile2)
+      catch e
+        ok = isa(e, SigmoidNumbers.NaNError)
+      end
+      if !ok
+        println("$iterable: $(fval1) $op $(fval2) failed to trap as NaN")
+        fails += 1
+      end
+      continue
+    end
+
+    exp = iterable(texp)
     fexp = Float64(exp)
+
     res = op(STile1, STile2)
     fres = Float64(res)
 
@@ -161,21 +176,22 @@ function testop(op, iterable)
       println("$iterable: $(fval1) $op $(fval2) failed as $(fres); should be $(fexp)")
       fails += 1
     end
+
   end
   println("$iterable: $op $fails / $(totalsize) = $(100 * fails/totalsize)% failure!")
 end
 
-testop(+, M7)
-testop(-, M7)
-#testop(*, M7)
-#testop(/, M7)
+testop(+, M7, exceptions = [Inf, Inf])
+testop(-, M7, exceptions = [Inf, Inf])
+testop(*, M7)
+testop(/, M7)
 
-testop(+, M7_1)
-#testop(-, M7_1)
-#testop(*, M7_1)
-#testop(/, M7_1)
+testop(+, M7_1, exceptions = [Inf, Inf])
+testop(-, M7_1, exceptions = [Inf, Inf])
+testop(*, M7_1)
+testop(/, M7_1)
 
-testop(+, M7_2)
-#testop(-, M7_2)
-#testop(*, M7_2)
-#testop(/, M7_2)
+testop(+, M7_2, exceptions = [Inf, Inf])
+testop(-, M7_2, exceptions = [Inf, Inf])
+testop(*, M7_2)
+testop(/, M7_2)
