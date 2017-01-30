@@ -1,6 +1,6 @@
 import Base: +, -
 
-@generated function +{N, ES, mode}(lhs::SigmoidSmall{N, ES, mode}, rhs::SigmoidSmall{N, ES, mode})
+@generated function +{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
   if (ES == 0)
     breakdown = :(@breakdown lhs arithmetic; @breakdown rhs arithmetic)
     sub_algorithm = arithmetic_sub
@@ -13,7 +13,7 @@ import Base: +, -
     build_algorithm = build_numeric
   end
 
-  S = SigmoidSmall{N, ES, mode}
+  S = Sigmoid{N, ES, mode}
 
   quote
     #adding infinities is infinite.
@@ -45,8 +45,8 @@ import Base: +, -
   end
 end
 
--{N, ES, mode}(operand::SigmoidSmall{N, ES, mode}) = reinterpret(SigmoidSmall{N, ES, mode}, -@s(operand))
--{N, ES, mode}(lhs::SigmoidSmall{N, ES, mode}, rhs::SigmoidSmall{N, ES, mode}) = lhs + (-rhs)
+-{N, ES, mode}(operand::Sigmoid{N, ES, mode}) = reinterpret(Sigmoid{N, ES, mode}, -@s(operand))
+-{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode}) = lhs + (-rhs)
 
 function arithmetic_sub(lhs_sgn, lhs_exp, lhs_frc, rhs_sgn, rhs_exp, rhs_frc)
   ## assign top and bottom fractions, ascertain the final sign, and set the

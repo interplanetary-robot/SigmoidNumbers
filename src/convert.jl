@@ -11,7 +11,7 @@ function convert{N, ES, mode, I <: Signed}(T::Type{Sigmoid{N, ES, mode}}, int::I
   convert(T, convert(Float64, int))
 end
 
-@generated function convert{F <: IEEEFloat, N, ES, mode}(::Type{F}, x::SigmoidSmall{N, ES, mode})
+@generated function convert{F <: IEEEFloat, N, ES, mode}(::Type{F}, x::Sigmoid{N, ES, mode})
   FInt  = Dict(Float16 => UInt16, Float32 => UInt32, Float64 => UInt64)[F]
   fbits = Dict(Float16 => 16    , Float32 => 32,     Float64 => 64)[F]
   ebits = Dict(Float16 => 5     , Float32 => 8,      Float64 => 11)[F]
@@ -71,13 +71,13 @@ doc"""
   end
 end
 
-function convert{S <: SigmoidSmall, F <: IEEEFloat}(::Type{S}, f::F)
+function convert{N, ES, mode, F <: IEEEFloat}(::Type{Sigmoid{N, ES, mode}}, f::F)
   #handle the three corner cases of NaN, infinity and zero.
-  isnan(f) && throw(NaNError(convert, [S, f]))
-  isfinite(f) || return reinterpret(S, @signbit)
-  (f == zero(F)) && return reinterpret(S, zero(@UInt))
+  isnan(f) && throw(NaNError(convert, [Sigmoid{N, ES, mode}, f]))
+  isfinite(f) || return reinterpret(Sigmoid{N, ES, mode}, @signbit)
+  (f == zero(F)) && return reinterpret(Sigmoid{N, ES, mode}, zero(@UInt))
   #retrieve the floating point triplet.
-  __round(build_numeric(S, fptrip(f)...))
+  __round(build_numeric(Sigmoid{N, ES, mode}, fptrip(f)...))
 end
 
 @generated function (::Type{Sigmoid{N, ES, mode}}){N, ES, mode, UI <: Unsigned}(i::UI)
@@ -98,7 +98,7 @@ end
   end
 end
 
-function build_numeric{N, ES, mode}(::Type{SigmoidSmall{N, ES, mode}}, sign, exponent, fraction)
+function build_numeric{N, ES, mode}(::Type{Sigmoid{N, ES, mode}}, sign, exponent, fraction)
   if exponent < 0
     (regime, subexponent) = divrem(exponent, 1 << ES)
     if (subexponent != 0)
@@ -129,7 +129,7 @@ function build_numeric{N, ES, mode}(::Type{SigmoidSmall{N, ES, mode}}, sign, exp
 end
 
 #build_numeric is much simpler when ES = 0
-function build_numeric{N, mode}(::Type{SigmoidSmall{N, 0, mode}}, sign, exponent, fraction)
+function build_numeric{N, mode}(::Type{Sigmoid{N, 0, mode}}, sign, exponent, fraction)
   if exponent < 0
     fshift = -exponent + 2
     body = one(@UInt) << (__BITS + exponent - 2)
@@ -147,7 +147,7 @@ function build_numeric{N, mode}(::Type{SigmoidSmall{N, 0, mode}}, sign, exponent
 end
 
 #build_arithmetic is restricted to ES == 0 sigmoids.
-function build_arithmetic{N, mode}(::Type{SigmoidSmall{N, 0, mode}}, sign, exponent, fraction)
+function build_arithmetic{N, mode}(::Type{Sigmoid{N, 0, mode}}, sign, exponent, fraction)
   normal = (fraction & @signbit) != 0
   #check if it's denormal.  If it is, then we don't shift.
   fshift = normal * (exponent + 1) + 1
@@ -160,6 +160,5 @@ function build_arithmetic{N, mode}(::Type{SigmoidSmall{N, 0, mode}}, sign, expon
 
   reinterpret(Sigmoid{N, 0, mode}, sign ? -absval : absval)
 end
-
 
 Base.promote_rule{T<:Sigmoid}(::Type{T}, ::Type{Int64}) = T

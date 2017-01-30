@@ -15,22 +15,11 @@ else #default to a 64-bit environment.
   const __BITS = 64
 end
 
-abstract Sigmoid{N, ES, mode} <: AbstractFloat
+bitstype __BITS Sigmoid{N, ES, mode} <: AbstractFloat
 
-bitstype __BITS SigmoidSmall{N, ES, mode} <: Sigmoid{N, ES, mode}
-immutable       SigmoidLarge{N, ES, mode} <: Sigmoid{N, ES, mode}
-  bits::Array{Int64, 1}
-end
-
-N{_N, ES, mode}(::Type{Sigmoid{_N,ES,mode}})          = _N
-N{_N, ES, mode}(::Type{SigmoidSmall{_N,ES,mode}})     = _N
-N{_N, ES, mode}(::Type{SigmoidLarge{_N,ES,mode}})     = _N
-ES{N, _ES, mode}(::Type{Sigmoid{N,_ES,mode}})         = _ES
-ES{N, _ES, mode}(::Type{SigmoidSmall{N,_ES,mode}})    = _ES
-ES{N, _ES, mode}(::Type{SigmoidLarge{N,_ES,mode}})    = _ES
-mode{N, ES, _mode}(::Type{Sigmoid{N,ES,_mode}})       = _mode
-mode{N, ES, _mode}(::Type{SigmoidSmall{N,ES,_mode}})  = _mode
-mode{N, ES, _mode}(::Type{SigmoidLarge{N,ES,_mode}})  = _mode
+#_N{N, ES, mode}(::Type{Sigmoid{N,ES,mode}})          = N
+#_ES{N, ES, mode}(::Type{Sigmoid{N,ES,mode}})         = ES
+#_mode{N, ES, mode}(::Type{Sigmoid{N,ES,mode}})       = mode
 
 #these are deliberately made incompatible with the standard rounding modes types
 #found in the julia std library.
@@ -57,31 +46,4 @@ export Sigmoid, Posit, Valid, VBound
 type NaNError <: Exception
   operand::Function
   parameters::Array{Any,1}
-end
-
-################################################################################
-# aliasing constructors
-
-function (::Type{Posit{N, ES}}){N, ES}(x)
-  if N < __BITS
-    convert(SigmoidSmall{N, ES, :guess}, x)
-  else
-    convert(SigmoidLarge{N, ES, :guess}, x)
-  end
-end
-
-function (::Type{Valid{N, ES}}){N, ES}(x)
-  if N < __BITS
-    SigmoidSmall{N, ES, :ubit}(x)
-  else
-    SigmoidLarge{N, 0, :ubit}(x)
-  end
-end
-
-function (::Type{Sigmoid{N, ES, mode}}){N, ES, mode}(x)
-  if N < __BITS
-    SigmoidSmall{N, ES, mode}(x)
-  else
-    SigmoidLarge{N, 0, :ubit}(x)
-  end
 end

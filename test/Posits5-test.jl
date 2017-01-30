@@ -78,15 +78,15 @@ M5 = Posit{5, 0}
 #test build_numeric
 
 #test build_arithmetic
-@test M5(3.0)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.SigmoidSmall{5,0,:guess}, false, 1, 0xC000_0000_0000_0000)
-@test M5(2.0)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.SigmoidSmall{5,0,:guess}, false, 1, 0x8000_0000_0000_0000)
-@test M5(1.5)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.SigmoidSmall{5,0,:guess}, false, 0, 0xC000_0000_0000_0000)
-@test M5(1.0)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.SigmoidSmall{5,0,:guess}, false, 0, 0x8000_0000_0000_0000)
-@test M5(0.75) == SigmoidNumbers.build_arithmetic( SigmoidNumbers.SigmoidSmall{5,0,:guess}, false, 0, 0x6000_0000_0000_0000)
-@test M5(0.5)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.SigmoidSmall{5,0,:guess}, false, 0, 0x4000_0000_0000_0000)
-@test M5(0.25) == SigmoidNumbers.build_arithmetic( SigmoidNumbers.SigmoidSmall{5,0,:guess}, false, 0, 0x2000_0000_0000_0000)
-@test M5(-0.25) == SigmoidNumbers.build_arithmetic(SigmoidNumbers.SigmoidSmall{5,0,:guess}, true, 0, 0x2000_0000_0000_0000)
-@test M5(-1.5)  == SigmoidNumbers.build_arithmetic(SigmoidNumbers.SigmoidSmall{5,0,:guess}, true, 0, 0xC000_0000_0000_0000)
+@test M5(3.0)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.Sigmoid{5,0,:guess}, false, 1, 0xC000_0000_0000_0000)
+@test M5(2.0)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.Sigmoid{5,0,:guess}, false, 1, 0x8000_0000_0000_0000)
+@test M5(1.5)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.Sigmoid{5,0,:guess}, false, 0, 0xC000_0000_0000_0000)
+@test M5(1.0)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.Sigmoid{5,0,:guess}, false, 0, 0x8000_0000_0000_0000)
+@test M5(0.75) == SigmoidNumbers.build_arithmetic( SigmoidNumbers.Sigmoid{5,0,:guess}, false, 0, 0x6000_0000_0000_0000)
+@test M5(0.5)  == SigmoidNumbers.build_arithmetic( SigmoidNumbers.Sigmoid{5,0,:guess}, false, 0, 0x4000_0000_0000_0000)
+@test M5(0.25) == SigmoidNumbers.build_arithmetic( SigmoidNumbers.Sigmoid{5,0,:guess}, false, 0, 0x2000_0000_0000_0000)
+@test M5(-0.25) == SigmoidNumbers.build_arithmetic(SigmoidNumbers.Sigmoid{5,0,:guess}, true, 0, 0x2000_0000_0000_0000)
+@test M5(-1.5)  == SigmoidNumbers.build_arithmetic(SigmoidNumbers.Sigmoid{5,0,:guess}, true, 0, 0xC000_0000_0000_0000)
 
 #test cross-conversions.
 for tile in M5

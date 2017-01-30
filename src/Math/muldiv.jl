@@ -1,28 +1,28 @@
 import Base: *
 
-*{N, ES, mode}(lhs::Bool, rhs::SigmoidSmall{N, ES, mode}) = reinterpret(SigmoidSmall{N, ES, mode}, @s(rhs) * lhs)
-*{N, ES, mode}(lhs::SigmoidSmall{N, ES, mode}, rhs::Bool) = reinterpret(SigmoidSmall{N, ES, mode}, @s(lhs) * rhs)
+*{N, ES, mode}(lhs::Bool, rhs::Sigmoid{N, ES, mode}) = reinterpret(Sigmoid{N, ES, mode}, @s(rhs) * lhs)
+*{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Bool) = reinterpret(Sigmoid{N, ES, mode}, @s(lhs) * rhs)
 
-function *{N, ES, mode}(lhs::SigmoidSmall{N, ES, mode}, rhs::SigmoidSmall{N, ES, mode})
+function *{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
   #multiplying infinities is infinite.
   if !isfinite(lhs)
-    (rhs == zero(SigmoidSmall{N, ES, mode})) && throw(NaNError(*, [lhs, rhs]))
-    return reinterpret(SigmoidSmall{N, ES, mode}, @signbit)
+    (rhs == zero(Sigmoid{N, ES, mode})) && throw(NaNError(*, [lhs, rhs]))
+    return reinterpret(Sigmoid{N, ES, mode}, @signbit)
   end
   if !isfinite(rhs)
-    (lhs == zero(SigmoidSmall{N, ES, mode})) && throw(NaNError(*, [lhs, rhs]))
-    return reinterpret(SigmoidSmall{N, ES, mode}, @signbit)
+    (lhs == zero(Sigmoid{N, ES, mode})) && throw(NaNError(*, [lhs, rhs]))
+    return reinterpret(Sigmoid{N, ES, mode}, @signbit)
   end
 
   #mulitplying zeros is zero
-  (lhs == zero(SigmoidSmall{N, ES, mode})) && return zero(SigmoidSmall{N, ES, mode})
-  (rhs == zero(SigmoidSmall{N, ES, mode})) && return zero(SigmoidSmall{N, ES, mode})
+  (lhs == zero(Sigmoid{N, ES, mode})) && return zero(Sigmoid{N, ES, mode})
+  (rhs == zero(Sigmoid{N, ES, mode})) && return zero(Sigmoid{N, ES, mode})
 
   return mul_algorithm(lhs, rhs)
 end
 
 
-function mul_algorithm{N, ES, mode}(lhs::SigmoidSmall{N, ES, mode}, rhs::SigmoidSmall{N, ES, mode})
+function mul_algorithm{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
 
   #generate the lhs and rhs subcomponents.
   @breakdown lhs
@@ -44,12 +44,12 @@ function mul_algorithm{N, ES, mode}(lhs::SigmoidSmall{N, ES, mode}, rhs::Sigmoid
   mul_frc <<= shift + 1
   mul_exp -= (shift - 1)
 
-  __round(build_numeric(SigmoidSmall{N, ES, mode}, mul_sgn, mul_exp, mul_frc))
+  __round(build_numeric(Sigmoid{N, ES, mode}, mul_sgn, mul_exp, mul_frc))
 end
 #
 #  Multiplication with ES 0 can use arithmetic mode.
 #
-function mul_algorithm{N, mode}(lhs::SigmoidSmall{N, 0, mode}, rhs::SigmoidSmall{N, 0, mode})
+function mul_algorithm{N, mode}(lhs::Sigmoid{N, 0, mode}, rhs::Sigmoid{N, 0, mode})
   ES = 0
   #generate the lhs and rhs subcomponents.
   @breakdown lhs arithmetic
@@ -68,10 +68,10 @@ function mul_algorithm{N, mode}(lhs::SigmoidSmall{N, 0, mode}, rhs::SigmoidSmall
   mul_frc <<= shift + 1
   mul_exp -= shift
 
-  __round(build_arithmetic(SigmoidSmall{N, 0, mode}, mul_sgn, mul_exp, mul_frc))
+  __round(build_arithmetic(Sigmoid{N, 0, mode}, mul_sgn, mul_exp, mul_frc))
 end
 
-@generated function Base.:/{N, ES, mode}(lhs::SigmoidSmall{N, ES, mode}, rhs::SigmoidSmall{N, ES, mode})
+@generated function Base.:/{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
   #calculate the number of rounds we should apply the goldschmidt method.
   rounds = Int(ceil(log(2,N))) + 1
   top_bit = promote(one(@UInt) << (__BITS - 1))
@@ -80,16 +80,16 @@ end
     #dividing infinities or by zero is infinite.
     if !isfinite(lhs)
       isfinite(rhs) || throw(NaNError(/,[lhs, rhs]))
-      return reinterpret(SigmoidSmall{N, ES, mode}, @signbit)
+      return reinterpret(Sigmoid{N, ES, mode}, @signbit)
     end
-    if rhs == zero(SigmoidSmall{N, ES, mode})
-      (lhs == zero(SigmoidSmall{N, ES, mode})) && throw(NaNError(/, [lhs, rhs]))
-      return reinterpret(SigmoidSmall{N, ES, mode}, @signbit)
+    if rhs == zero(Sigmoid{N, ES, mode})
+      (lhs == zero(Sigmoid{N, ES, mode})) && throw(NaNError(/, [lhs, rhs]))
+      return reinterpret(Sigmoid{N, ES, mode}, @signbit)
     end
 
     #dividing zeros or by infinity is zero
-    isfinite(rhs) || return zero(SigmoidSmall{N, ES, mode})
-    lhs == zero(SigmoidSmall{N, ES, mode}) && return zero(SigmoidSmall{N, ES, mode})
+    isfinite(rhs) || return zero(Sigmoid{N, ES, mode})
+    lhs == zero(Sigmoid{N, ES, mode}) && return zero(Sigmoid{N, ES, mode})
 
     const cq_mask = promote(-one(@UInt))
 
@@ -107,7 +107,7 @@ end
     #do something different if rhs_frc is zero (aka power of two)
     if rhs_frc == 0
       div_exp = lhs_exp - rhs_exp
-      return __round(build_numeric(SigmoidSmall{N, ES, mode}, div_sgn, div_exp, lhs_frc))
+      return __round(build_numeric(Sigmoid{N, ES, mode}, div_sgn, div_exp, lhs_frc))
     end
 
     #the multiplicative exponent is the product of the two exponents.
@@ -173,6 +173,6 @@ end
 
     #println("div_exp: $(div_exp + power_gain) div_frc: ", bits(div_frc))
 
-    __round(build_numeric(SigmoidSmall{N, ES, mode}, div_sgn, div_exp + power_gain, div_frc))
+    __round(build_numeric(Sigmoid{N, ES, mode}, div_sgn, div_exp + power_gain, div_frc))
   end
 end

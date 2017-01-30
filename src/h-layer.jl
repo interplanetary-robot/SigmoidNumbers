@@ -53,19 +53,15 @@ function show{N, ES, mode}(io::IO, x::Sigmoid{N, ES, mode})
   print(io, "(0x$innerval)")
 end
 
-
-@generated function show{T<:Sigmoid}(io::IO, ::Type{T})
-  _N  = N(T)
-  _ES = ES(T)
-  _m  = mode(T)
-  if (_m == :guess)
-    sig = "{$_N,$_ES}"
+@generated function show{N, ES, mode}(io::IO, ::Type{Sigmoid{N, ES, mode}})
+  if (m == :guess)
+    sig = "{$N,$ES}"
     :(print(io, "Posit", $sig))
   elseif (_m == :ubit)
-    sig = "{$_N,$_ES}"
+    sig = "{$N,$ES}"
     :(print(io, "Valid", $sig))
   else
-    sig = "{$_N,$_ES,$_m}"
+    sig = "{$N,$ES,$m}"
     :(print(io, "Sigmoid", $sig))
   end
 end
