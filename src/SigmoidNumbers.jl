@@ -16,6 +16,8 @@ module SigmoidNumbers
 
   include("Posits/posits.jl")
 
+  include("Valids/valids.jl")
+
   include("Tools/fft.jl")
 
 end # module

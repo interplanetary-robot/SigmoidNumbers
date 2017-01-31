@@ -43,25 +43,36 @@ end
 
 function show{N, ES, mode}(io::IO, x::Sigmoid{N, ES, mode})
 
-  show(io,typeof(x))
+  if mode == :ubit
+    #cast to Exact or ULP, depending on what the number looks like.
+    if (reinterpret((@UInt), x) & increment(Sigmoid{N, ES, mode})) != 0
+      print(io, "ULP{$N,$ES}")
+    else
+      print(io, "Exact{$N,$ES}")
+    end
+  else
+    show(io, typeof(x))
+  end
 
-  #isfinite(x) || (print(io, "$classname(Inf)"); return)
-  #iszero(x)   || (print(io, "zero($classname)"); return)
+  innerval = reinterpret((@UInt), x)
 
-  innerval = hex(reinterpret(@UInt, x),(__BITS ÷ 4))
-
-  print(io, "(0x$innerval)")
+  if N == 16
+    print(io, "(0x", hex(innerval,4)[1:4], ")")
+  elseif N == 32
+    print(io, "(0x", hex(innerval,8)[1:8], ")")
+  elseif N == 64
+    print(io, "(0x", hex(innerval,16)[1:16], ")")
+  else
+    print(io, "(0b", bits(innerval), ")")
+  end
 end
 
 @generated function show{N, ES, mode}(io::IO, ::Type{Sigmoid{N, ES, mode}})
-  if (m == :guess)
+  if (mode == :guess)
     sig = "{$N,$ES}"
     :(print(io, "Posit", $sig))
-  elseif (_m == :ubit)
-    sig = "{$N,$ES}"
-    :(print(io, "Valid", $sig))
   else
-    sig = "{$N,$ES,$m}"
+    sig = "{$N,$ES,$mode}"
     :(print(io, "Sigmoid", $sig))
   end
 end

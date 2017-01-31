@@ -4,7 +4,17 @@ one{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}) = reinterpret(T, @invertbit)
 zero{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}) = reinterpret(T, zero(@UInt))
 
 @generated function realmax{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}})
-  v = (@signbit) - increment(T)
+  v = (@signbit) - increment(Sigmoid{N, ES, mode})
+  :(reinterpret(T, $v))
+end
+
+@generated function pos_smallest{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}})
+  v = zero(@UInt) + increment(Sigmoid{N, ES, mode})
+  :(reinterpret(T, $v))
+end
+
+@generated function neg_smallest{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}})
+  v = zero(@UInt) - increment(Sigmoid{N, ES, mode})
   :(reinterpret(T, $v))
 end
 
@@ -27,12 +37,4 @@ Base.:-(::Type{∞}) = ∞n
 Base.convert{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}, ::Type{∞}) = T(Inf)
 Base.convert{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}, ::Type{∞n}) = T(Inf)
 
-type ∅; end
-type ℝ; end
-type ℝp; end
-
-Base.convert{N, ES}(T::Type{VBound{N, ES}}, ::Type{∅}) = VBound(zero(Valid{N,ES}), neg_smallest(Valid{N,ES}))
-Base.convert{N, ES}(T::Type{VBound{N, ES}}, ::Type{ℝ}) = VBound(-realmax(Valid{N,ES}),  realmax(Valid{N,ES}))
-Base.convert{N, ES}(T::Type{VBound{N, ES}}, ::Type{ℝp}) = VBound(inf(Valid{N,ES}),  realmax(Valid{N,ES}))
-
-export ∞, ∅, ℝ, ℝp
+export ∞

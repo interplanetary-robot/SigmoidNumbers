@@ -28,11 +28,11 @@
 
 #repeat some of these tests with valid numbers
 #0b0_10_1_00000000000_1
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,1}(0x5001)) == (false, false, 1, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,1}(0x5001)) == (false, false, 1, 0x0000_0000_0000_0000, true)
 #0b0_110_1_0000000000_1
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,1}(0x6801)) == (false, false, 3, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,1}(0x6801)) == (false, false, 3, 0x0000_0000_0000_0000, true)
 #0b0_11111111111111_1
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,1}(0x7FFF)) == (false, false, 26, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,1}(0x7FFF)) == (false, false, 26, 0x0000_0000_0000_0000, true)
 
 #repeat these tests, except with inverted numbers
 @test SigmoidNumbers.__numeric_breakdown_wrapper(Posit{16,0}(0x2000)) == (false, true, -1, 0x0000_0000_0000_0000, false)
@@ -60,18 +60,18 @@
 @test SigmoidNumbers.__numeric_breakdown_wrapper(Posit{16,2}(0x0003)) == (false, true, -50, 0x0000_0000_0000_0000, false)
 
 #and now with valids
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,0}(0x2000)) == (false, true, -1, 0x0000_0000_0000_0000, false)
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,0}(0x2001)) == (false, true, -1, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,0}(0x2000)) == (false, true, -1, 0x0000_0000_0000_0000, false)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,0}(0x2001)) == (false, true, -1, 0x0000_0000_0000_0000, true)
 #and then go really extreme.
 #0b0_0000000000001_0
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,1}(0x0002)) == (false, true, -26, 0x0000_0000_0000_0000, false)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,1}(0x0002)) == (false, true, -26, 0x0000_0000_0000_0000, false)
 #0b0_0000000000001_1
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,1}(0x0003)) == (false, true, -26, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,1}(0x0003)) == (false, true, -26, 0x0000_0000_0000_0000, true)
 #semantically different due to the a higher ES
 #0b0_0000000000001_0
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,2}(0x0002)) == (false, true, -52, 0x0000_0000_0000_0000, false)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,2}(0x0002)) == (false, true, -52, 0x0000_0000_0000_0000, false)
 #0b0_0000000000001_1
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,2}(0x0003)) == (false, true, -52, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,2}(0x0003)) == (false, true, -52, 0x0000_0000_0000_0000, true)
 
 
 
@@ -105,8 +105,8 @@
 
 #repeat some of these tests with valid numbers
 #0b0_10_1_00000000000_1
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,1}(0xAFFF)) == (true, false, 1, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,1}(0xAFFF)) == (true, false, 1, 0x0000_0000_0000_0000, true)
 #0b0_110_1_0000000000_1
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,1}(0x97FF)) == (true, false, 3, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,1}(0x97FF)) == (true, false, 3, 0x0000_0000_0000_0000, true)
 #0b0_11111111111111_1
-@test SigmoidNumbers.__numeric_breakdown_wrapper(Valid{16,1}(0x8001)) == (true, false, 26, 0x0000_0000_0000_0000, true)
+@test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,1}(0x8001)) == (true, false, 26, 0x0000_0000_0000_0000, true)

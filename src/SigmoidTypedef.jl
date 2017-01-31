@@ -33,14 +33,17 @@ const roundingmodes = [:guess,
 
 #uses the rounding mode types:
 typealias Posit{N, ES} Sigmoid{N, ES, :guess}
-typealias Valid{N, ES} Sigmoid{N, ES, :ubit}
 
-type VBound{N, ES} <: AbstractFloat
-  lower::Valid{N, ES}
-  upper::Valid{N, ES}
+typealias Vnum{N, ES} Sigmoid{N, ES, :ubit}
+typealias Exact{N, ES} Vnum{N, ES}
+typealias ULP{N, ES} Vnum{N, ES}
+
+immutable Valid{N, ES} <: AbstractFloat
+  lower::Vnum{N, ES}
+  upper::Vnum{N, ES}
 end
 
-export Sigmoid, Posit, Valid, VBound
+export Sigmoid, Posit, Valid, Exact, ULP
 
 #sigmoid numbers don't natively have NaN, so NaNs should all be noisy.
 type NaNError <: Exception
