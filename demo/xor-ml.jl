@@ -4,11 +4,7 @@ using SigmoidNumbers
 using GenML
 using Base.Test
 
-if length(ARGS) > 0
-  PType = Posit{parse(ARGS[1])}
-else
-  PType = Posit{12}
-end
+PType = Float32#Posit{12,0}
 
 #assign sigmoid to the pseudologistic
 GenML.TF.sigmoid(x::Posit) = SigmoidNumbers.pseudologistic(x)
@@ -18,9 +14,9 @@ GenML.CF.logloss(x::Posit) = SigmoidNumbers.pseudologcost(x)
 xornet = GenML.MLP.MultilayerPerceptron{PType, (2,2,1)}()
 
 #hand-written transition matrices.
-xornet.layers[1].transition = PType[5.0 5.0; -10.0 -10.0]
+xornet.layers[1].transition[:] = PType[5.0 5.0; -10.0 -10.0]
 xornet.layers[1].bias[:] = PType[-7.5, 7.5]
-xornet.layers[2].transition = PType[-10.0 -10.0]
+xornet.layers[2].transition[:] = PType[-10.0 -10.0]
 xornet.layers[2].bias[:] = PType[5.0]
 
 #test the possible input/output pairs.
@@ -48,12 +44,12 @@ function xortrain()
 
   xornet = GenML.MLP.MultilayerPerceptron{PType,(10,2,1)}(randn)
 
-  for rounds = 1:25
+  for rounds = 1:40
   for idx = 1:500
     input_column = input_matrix[:, idx]
     training_column = training_results[:, idx]
 
-    GenML.MLP.backpropagationoptimize(xornet, input_column, training_column, GenML.CF.crossentropy)
+    GenML.Optimizers.backpropagationoptimize(xornet, input_column, training_column, GenML.CF.crossentropy)
   end
   end
 

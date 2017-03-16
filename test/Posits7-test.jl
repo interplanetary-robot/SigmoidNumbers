@@ -145,7 +145,7 @@ end
 #and a general purpose function for testing an operation against a matrix
 function testop(op, iterable; exceptions = [])
   fails = 0
-  totalsize = length(iterable) * length(iterable)
+  totalsize = size(iterable) * size(iterable)
   for STile1 in iterable, STile2 in iterable
     fval1 = Float64(STile1)
     fval2 = Float64(STile2)

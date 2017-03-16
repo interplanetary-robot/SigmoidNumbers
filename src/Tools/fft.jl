@@ -2,10 +2,10 @@
 
 const TWIDDLE_FACTORS = Dict{Tuple{Type, Integer},Vector}()
 
-typealias CFFT_Type Union{Sigmoid, Float32, Float16}
+import Base: fft, ifft
 
 #actual meat of the fast fourier transform
-@generated function __fft{T<:CFFT_Type, l, i, n}(v::AbstractVector{Complex{T}}, ::Type{Val{l}}, ::Type{Val{i}}, ::Type{Val{n}})
+@generated function __fft{T<:AbstractFloat, l, i, n}(v::AbstractVector{Complex{T}}, ::Type{Val{l}}, ::Type{Val{i}}, ::Type{Val{n}})
   # l - length. (Int.  Must be power of 2)
   # i - is it inverse ? (Bool)
   # n - continuous normalization ? (Bool)
@@ -49,7 +49,7 @@ typealias CFFT_Type Union{Sigmoid, Float32, Float16}
   end
 end
 
-function custom_fft{T<:CFFT_Type}(v::Union{Vector{Complex{T}}, Vector{T}};
+function custom_fft{T<:AbstractFloat}(v::Union{Vector{Complex{T}}, Vector{T}};
     normalize = :oninverse,
     inverse = false)
   #first check that the length of the vector is a power of 2
@@ -78,6 +78,13 @@ function custom_fft{T<:CFFT_Type}(v::Union{Vector{Complex{T}}, Vector{T}};
   return v
 end
 
-custom_ifft(v; normalize = :oninverse) = custom_fft(v, normalize = normalize, inverse = true)
+fft{T<:Posit}(v::Union{Vector{Complex{T}}, Vector{T}};
+    normalize = :oninverse,
+    inverse = false) = custom_fft(v, normalize = normalize, inverse = inverse)
+
+custom_ifft{T<:Posit}(v::Union{Vector{Complex{T}}, Vector{T}}; normalize = :oninverse) = custom_fft(v, normalize = normalize, inverse = true)
+
+ifft{T<:Posit}(v::Union{Vector{Complex{T}}, Vector{T}}; normalize = :oninverse) = custom_fft(v, normalize = normalize, inverse = true)
+
 
 export custom_fft, custom_ifft;

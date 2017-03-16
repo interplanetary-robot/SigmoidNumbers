@@ -57,6 +57,8 @@ doc"""
   quote
     #first grab the sign bit.
     sign = (x < 0)
+    #flip the sign.
+    x = sign ? -x : x
     intform = reinterpret($FInt, x) & ((zero($FInt) - 1) >> 1)
     exponent = Int(intform >> ($fbits - $ebits - 1)) - $bias
     if $fbits < __BITS

@@ -3,7 +3,7 @@
 using SigmoidNumbers
 using GenML
 
-import GenML.FCL: FullyConnectedLayer, matrixfma, dxasychainrule, scaledsubtract, scaledouterproductfma, reversematrixfma
+import GenML.FCL: FullyConnectedTransition, matrixfma, dxasychainrule, scaledsubtract, scaledouterproductfma, reversematrixfma
 import GenML.MLP: MultilayerPerceptron
 import GenML.dxasy
 import GenML.VoidableDeltas
@@ -145,7 +145,7 @@ end
 
 #MONKEY PATCH MLP BACKPROPAGATION ALGO TO HAVE CLAMPS EVERYWHERE
 #implementation of the backpropagation algorithm for multilayer perceptrons.
-@generated function backpropagate!{F <: Posit, i, o, tf}(fcl::FullyConnectedLayer{F, i, o, tf},
+@generated function backpropagate!{F <: Posit, i, o, tf}(fcl::FullyConnectedTransition{F, i, o, tf},
 #==#                                            input::AbstractArray,
 #==#                                            output::AbstractArray{F},
 #==#                                            output_deltas::AbstractArray{F},
@@ -182,7 +182,7 @@ end
 
 ################################################################################
 
-function evaluate!{F <: Posit, i, o, tf}(output::AbstractArray{F}, fcl::FullyConnectedLayer{F, i, o, tf}, input::AbstractArray)
+function evaluate!{F <: Posit, i, o, tf}(output::AbstractArray{F}, fcl::FullyConnectedTransition{F, i, o, tf}, input::AbstractArray)
 
   @clamp input :evaluate_input
 

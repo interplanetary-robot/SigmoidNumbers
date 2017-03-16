@@ -17,7 +17,7 @@ doc"""
   This function is undefined for values > 1 or less than 0.
 """
 oneminus(y::Posit) = oneminus_careful(y)
-oneminus_sloppy{N}(y::Posit{N}) = reinterpret(Posit{N}, (@invertbit) - @u(y))
+oneminus_sloppy{P <: Posit}(y::P) = reinterpret(P, (@invertbit) - @u(y))
 function oneminus_careful(y)
   @unitrange_check(y, :oneminus)
   oneminus_sloppy(y)
@@ -28,13 +28,11 @@ doc"""
 
   calculates the pseudo-logistic sigmoid curve for the Posit data type.
 """
-pseudologistic{N}(x::Posit{N}) = pseudologistic_careful(x)
-pseudologistic_sloppy{N}(x::Posit{N}) = reinterpret(Posit{N}, (@u(x) $ @signbit) >> 2)
-@generated function pseudologistic_careful{N}(x::Posit{N})
-  quote
-    isfinite(x) || throw(ArgumentError("pseudologistic function is undefined for infinity"))
-    __round(pseudologistic_sloppy(x))
-  end
+pseudologistic(x::Posit) = pseudologistic_careful(x)
+pseudologistic_sloppy{P <: Posit}(x::P) = reinterpret(P, (@u(x) $ @signbit) >> 2)
+function pseudologistic_careful(x::Posit)
+  isfinite(x) || throw(ArgumentError("pseudologistic function is undefined for infinity"))
+  __round(pseudologistic_sloppy(x))
 end
 
 doc"""
@@ -44,9 +42,9 @@ doc"""
 
   This function is undefined for values > 1 or less than zero.
 """
-delta_psl{N}(y::Posit{N}) = delta_psl_careful(y)
+delta_psl(y::Posit) = delta_psl_careful(y)
 delta_psl_sloppy(y) = y * oneminus_sloppy(y)
-function delta_psl_careful{N}(y::Posit{N})
+function delta_psl_careful(y::Posit)
   @unitrange_check(y, :delta_psl)
   __round(delta_psl_sloppy(y))
 end
@@ -59,9 +57,9 @@ doc"""
 
   This function is undefined for values > 1 or less than zero.
 """
-pseudologcost{N}(y::Posit{N}) = pseudologcost_careful(y)
-pseudologcost_sloppy{N}(y::Posit{N}) = reinterpret(Posit{N}, @u(y) << 1)
-function pseudologcost_careful{N}(y::Posit{N})
+pseudologcost(y::Posit) = pseudologcost_careful(y)
+pseudologcost_sloppy{P <: Posit}(y::P) = reinterpret(P, @u(y) << 1)
+function pseudologcost_careful(y::Posit)
   @unitrange_check(y, :pseudologcost)
   __round(pseudologcost_sloppy(y))
 end
@@ -73,11 +71,16 @@ doc"""
   pseudosoftplus emulates ln(1 + e^x).
 
 """
-pseudosoftplus{N}(x::Posit{N}) = pseudosoftplus_careful(x)
-pseudosoftplus_sloppy{N}(x::Posit{N}) = reinterpret(Posit{N}, (@u(x) $ @signbit) >> 1)
+pseudosoftplus(x::Posit) = pseudosoftplus_careful(x)
+pseudosoftplus_sloppy{P <: Posit}(x::P) = reinterpret(P, (@u(x) $ @signbit) >> 1)
 @generated function pseudosoftplus_careful{N}(x::Posit{N})
   mask = @mask(N)
   quote
     __round(reinterpret(Posit{N}, @u(pseudosoftplus_sloppy(x)) & $mask))
   end
 end
+
+
+##### ETC
+
+Base.randn{P <: Posit}(::Type{P},args::Integer...) = P.(randn(args...))

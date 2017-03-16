@@ -1,5 +1,10 @@
-function Base.convert{N,ES}(::Type{Valid{N,ES}}, f::Float64)
+function Base.convert{N,ES}(::Type{Valid{N,ES}}, f::IEEEFloat)
   value = Vnum{N, ES}(f)
+  Valid{N, ES}(value, value)
+end
+
+function Base.convert{N,ES}(::Type{Valid{N,ES}}, i::Signed)
+  value = Vnum{N, ES}(i)
   Valid{N, ES}(value, value)
 end
 

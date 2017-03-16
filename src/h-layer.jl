@@ -57,13 +57,13 @@ function show{N, ES, mode}(io::IO, x::Sigmoid{N, ES, mode})
   innerval = reinterpret((@UInt), x)
 
   if N == 16
-    print(io, "(0x", hex(innerval,4)[1:4], ")")
+    print(io, "(0x", hex(innerval,16)[1:4], ")")
   elseif N == 32
-    print(io, "(0x", hex(innerval,8)[1:8], ")")
+    print(io, "(0x", hex(innerval,16)[1:8], ")")
   elseif N == 64
     print(io, "(0x", hex(innerval,16)[1:16], ")")
   else
-    print(io, "(0b", bits(innerval), ")")
+    print(io, "(0b", bits(innerval)[1:N], ")")
   end
 end
 

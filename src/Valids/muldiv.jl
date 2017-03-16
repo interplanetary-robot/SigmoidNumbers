@@ -21,21 +21,17 @@ const __LHS_NEG_RHS_POS = 1
 const __LHS_POS_RHS_NEG = 2
 const __LHS_NEG_RHS_NEG = 3
 
-function __upper_mul{T <: Vnum}(lhs::T, rhs::T)
+function __upper_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES})
   #zero and infinity are annihilators.
-  if (@u(lhs) & ~(@signbit)) == 0
-    return lhs
-  end
-  if (@u(rhs) & ~(@signbit)) == 0
-    return rhs
-  end
+  (@u(lhs) & ~(@signbit)) == 0 && return lhs
+  (@u(rhs) & ~(@signbit)) == 0 && return rhs
 
-  #check the signs.
+  #check the signs, then do a stated lower mul
   __upper_mul(lhs, rhs, (@s(lhs) < 0) * 1 + (@s(rhs) < 0) * 2)
 end
 
 
-function __upper_mul{T <: Vnum}(lhs::T, rhs::T, state)
+function __upper_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES}, state)
   if (state == __LHS_POS_RHS_POS)
     #both positive
     @upper_valid(@upper(lhs) * @upper(rhs), lhs, rhs)
@@ -47,20 +43,16 @@ function __upper_mul{T <: Vnum}(lhs::T, rhs::T, state)
   end
 end
 
-function __lower_mul{T <: Vnum}(lhs::T, rhs::T)
+function __lower_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES})
   #zero and infinity are annihilators.
-  if (@u(lhs) & ~(@signbit)) == 0
-    return lhs
-  end
-  if (@u(rhs) & ~(@signbit)) == 0
-    return rhs
-  end
+  (@u(lhs) & ~(@signbit)) == 0 && return lhs
+  (@u(rhs) & ~(@signbit)) == 0 && return rhs
 
-  #check the signs.
+  #check the signs, then do a stated lower mul
   __lower_mul(lhs, rhs, (@s(lhs) < 0) * 1 + (@s(rhs) < 0) * 2)
 end
 
-function __lower_mul{T <: Vnum}(lhs::T, rhs::T, state)
+function __lower_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES}, state)
   if (state == __LHS_POS_RHS_POS)
     #both positive
     @lower_valid(@lower(lhs) * @lower(rhs), lhs, rhs)
@@ -158,7 +150,7 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
   acc.upper = _u
 end
 
-@pfunction function stdmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
+function stdmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
   #both values are "reasonable."
   _state = (@s(lhs.lower) < 0) * 1 + (@s(rhs.lower) < 0) * 2
 

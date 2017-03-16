@@ -15,4 +15,13 @@ function describe{N, ES}(x::Valid{N, ES})
   end
 end
 
+function bits{N,ES}(x::Valid{N,ES})
+  string(bits(x.lower),bits(x.upper))
+end
+
+function bits{N,ES}(x::Valid{N,ES}, separator::AbstractString)
+  string(bits(x.lower, separator),"|",bits(x.upper, separator))
+end
+
+
 export describe

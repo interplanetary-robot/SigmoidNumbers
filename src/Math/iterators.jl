@@ -1,6 +1,6 @@
 #iterators.jl - creating iterator convenience types for SigmoidNumbers.
 
-import Base: next, start, done, length
+import Base: next, start, done, size
 
 increment{N, ES, mode}(::Type{Sigmoid{N, ES, mode}}) = (@signbit) >> (N - 1)
 
@@ -22,6 +22,6 @@ next{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}, state) = (state, next(state))
   :(state == $last_element)
 end
 
-length{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}) = 1 << N
+size{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}) = 1 << N
 
 export prev

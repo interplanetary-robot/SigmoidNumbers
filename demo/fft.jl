@@ -36,34 +36,20 @@ function ffttest()
   sv = randomizer()
 
   v = F.(sv)
-  t = custom_ifft(custom_fft(v))
+  t = ifft(fft(v))
   d = sum(abs.(Complex{Float64}.(t .- v)))
   println("$F deviation: ", d)
 
   vp = P.(sv)
-  tp = custom_ifft(custom_fft(vp))
+  tp = ifft(fft(vp))
   dp = sum(abs.(Complex{Float64}.(tp .- vp)))
   println("$P deviation: ", dp)
 
-
-  v = F.(sv)
-  t = custom_ifft(custom_fft(v, normalize=:always), normalize=:always)
-  d = sum(abs.(Complex{Float64}.(t .- v)))
-  println("$F deviation: ", d)
-
-  vp = P.(sv)
-  tp = custom_ifft(custom_fft(vp, normalize=:always), normalize=:always)
+  tp = ifft(fft(vp, normalize=:always), normalize=:always)
   dp = sum(abs.(Complex{Float64}.(tp .- vp)))
   println("$P deviation: ", dp)
 
-
-  v = F.(sv)
-  t = custom_ifft(custom_fft(v, normalize=:continuous), normalize=:continuous)
-  d = sum(abs.(Complex{Float64}.(t .- v)))
-  println("$F deviation: ", d)
-
-  vp = P.(sv)
-  tp = custom_ifft(custom_fft(vp, normalize=:continuous), normalize=:continuous)
+  tp = ifft(fft(vp, normalize=:continuous), normalize=:continuous)
   dp = sum(abs.(Complex{Float64}.(tp .- vp)))
   println("$P deviation: ", dp)
 
