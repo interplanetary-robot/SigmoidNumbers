@@ -70,4 +70,5 @@ posit implementation from being 'complete'.
       | `Inf < Inf => True  ` | `NaN < NaN => False     `  |
       | `Inf <= Inf => True ` | `NaN <= NaN => False    `  |
       | `Inf == Inf => True ` | `NaN == NaN => False    `  |
+      | `Inf != Inf => False` | `NaN != NaN => True     `  |
       | `Inf === Inf => True` | **`NaN === NaN => True`**  |
