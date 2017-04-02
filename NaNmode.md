@@ -11,11 +11,15 @@ memory buckets should consider using this mode.
 1.  *NaN mode* is **strictly optional** - not including it does not disqualify a
 posit implementation from being 'complete'.
 2.  *NaN mode* **must** conform to the following specifications:
-  - *NaN mode* **must not** be the default operational mode.  For hardware: we
-    suggest using a CSR switch that activates *NaN mode*, but other solutions
-    may be desirable depending on the architecture.  For software:  a global
-    environment setting or an alternative type are suggested solutions; in the
-    latter case, the type may not be assigned to the single-token *Posit*.
+  - *NaN mode* **must not** be the default operational mode.  Programmers may
+    not implicitly use *NaN mode* without explicitly specifying it.  For
+    hardware: we suggest using a CSR switch that activates *NaN mode*, but other
+    solutions may be desirable depending on the architecture.  For software:  a
+    global environment setting or an alternative type are suggested solutions;
+    in the latter case, the type may not be assigned to the token *Posit* or any
+    variant that doesn't signify *NaN mode*.  For example, *Posit* and *Posit32*
+    would be off-limits, but *PositNaN* or *Posit32N* or *Posit{32,:NaN}*
+    would be fine.
   - the NaN value is 0b10000....  It supplants the +/- Inf value.  If you
     must have both undefined and infinite values, we suggest boxing the posit
     type with `Nullable` or `None` or `Null` values, or using *Valids*, which
