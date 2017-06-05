@@ -21,6 +21,7 @@ module SigmoidNumbers
   include("Valids/valids.jl")
 
   include("Tools/fft.jl")
+  include("fdp.jl")
 
   #temporary
   xlsh{T <: Posit}(x::T) = reinterpret(T, (@u(x) $ (@signbit)) >> 2)

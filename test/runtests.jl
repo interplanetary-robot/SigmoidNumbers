@@ -1,6 +1,8 @@
 using SigmoidNumbers
 using Base.Test
 
+include("fdp-test.jl")
+
 include("h-layer-test.jl")
 include("breakdown-test.jl")
 
