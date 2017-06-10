@@ -13,18 +13,28 @@ type Quire
   #some values for shortcut evaluation.
   #the one_train values keep track of the leading "train" of ones.  These values
   #are not necessarily written in the quire data store.
-  one_train_pos::Int64
-  one_train_len::Int64
+  train1_pos::Int64
+  train1_len::Int64
   #keep track of 128 bits behind the train.
-  tail_bits_h::UInt64
-  tail_bits_l::UInt64
+  int1_bits_h::UInt64
+  int1_bits_l::UInt64
+
+  #the next generation of quire store will implement the following extra data,
+  #which will enable calculations to be cached without resorting to the
+  #fixed point matrix....  For now, they will not be used.
+
+  #keep track of the next run of ones behind the train.
+  train2_len::Int64
+  #next keep track of the 128 bits beyond the second train.
+  int2_bits_h::UInt64
+  int2_bits_l::UInt64
 end
 
 #a few properties:
 maxpos(::Type{Quire}) = 2047
 minpos(::Type{Quire}) = -2048
-Base.isinf(q::Quire) = (q.one_train_pos > maxpos(Quire))
-iszero(q::Quire) = (q.one_train_pos < minpos(Quire))
+Base.isinf(q::Quire) = (q.train1_pos > maxpos(Quire))
+iszero(q::Quire) = (q.train1_pos < minpos(Quire))
 
 #a few convenience functions.
 maximum_exponent{N,ES}(::Type{Posit{N,ES}}) = (2^(ES) * N - 2)
@@ -39,7 +49,7 @@ function (::Type{Quire}){N,ES}(::Type{Posit{N,ES}})
 
   #for now, default to accomodating an accumulator for {64, 4}.  Layout is as follows:
   # 32 words . 32 words
-  Quire(zeros(UInt64, 64), -2049, 0, 0, 0);
+  Quire(zeros(UInt64, 64), -2049, 0, 0, 0, 0, 0, 0);
 end
 
 #zeroes out the fused dot product accumulator.  Just throw out the old array.
@@ -48,19 +58,22 @@ function zero!(q::Quire)
     q.fixed_point_value[idx] = zero(UInt64)
   end
 
-  q.one_train_pos = -2049
-  q.one_train_len = 0
-  q.tail_bits_h = zero(UInt64)
-  q.tail_bits_l = zero(UInt64)
+  q.train1_pos = -2049
+  q.train1_len = 0
+  q.int1_bits_h = zero(UInt64)
+  q.int1_bits_l = zero(UInt64)
+  q.train2_len = 0
+  q.int2_bits_h = zero(UInt64)
+  q.int2_bits_l = zero(UInt64)
   q
 end
 
 doc"""
   inf!(q::Quire) forces the quire to carry an infinite value.
 """
-inf!(q::Quire) = (q.one_train_pos = maxpos(Quire) + 1; q)
+inf!(q::Quire) = (q.train1_pos = maxpos(Quire) + 1; q)
 
-isnegative(q::Quire) = (q.one_train_pos == 2047)
+isnegative(q::Quire) = (q.train1_pos >= 2047)
 
 #this function builds a posit value based on some passed sign/exponent/fraction
 #parameters.
@@ -109,15 +122,13 @@ end
 
 function (::Type{Posit{N,ES}}){N,ES}(q::Quire)
   #exceptional value handling:
-  isinf(q) && return inf(Posit{N,ES})
+  isinf(q) && return Posit{N,ES}(Inf)
   iszero(q) && return zero(Posit{N,ES})
-
-  println("=================")
-  println("q:", q)
 
   #check if the front one is at the top, in which case it's negative
   if isnegative(q)
-    exponent = maximum_exponent(Posit{N,ES}) - q.one_train_len
+    exponent = 2047 - q.train1_len
+
     exponent > maximum_exponent(Posit{N,ES}) && return -realmax(Posit{N,ES})
     exponent < minimum_exponent(Posit{N,ES}) && return neg_smallest(Posit{N,ES})
 
@@ -128,23 +139,17 @@ function (::Type{Posit{N,ES}}){N,ES}(q::Quire)
       hasbitsbelow(q, <some number>) && fraction |= one(UInt64)
     =#
 
-
-    println("hey:", (true, exponent, f.tail_bits_h))
-
-    Posit{N,ES}(true, exponent, f.tail_bits_h)
+    Posit{N,ES}(true, exponent, q.int1_bits_h)
   else
-    exponent = q.one_train_pos
+    exponent = q.train1_pos
 
     exponent > maximum_exponent(Posit{N,ES}) && return realmax(Posit{N,ES})
     exponent < minimum_exponent(Posit{N,ES}) && return pos_smallest(Posit{N,ES})
 
-    #note.  fraction values for positive values should ALWAYS start with zero.
-    fraction = q.tail_bits_h | 0x8000_0000_0000_0000
-    println("f0: ", hex(fraction, 16))
-    println("shft: ", q.one_train_len - 2)
-    fraction = @u(@s(fraction) >> (q.one_train_len - 2))
-    println("f1: ", hex(fraction, 16))
-    fraction = fraction >> 1
+    #note.  int1_bits for positive values should ALWAYS start with zero
+    fraction_prefix = -(0x8000_0000_0000_0000 >> (q.train1_len - 2))
+    #then, take the actual fraction and shift it.
+    fraction = (q.int1_bits_h >> (q.train1_len - 1)) | fraction_prefix
 
     #=
       FUTURE:
@@ -153,14 +158,13 @@ function (::Type{Posit{N,ES}}){N,ES}(q::Quire)
       hasbitsbelow(q, <some number>) && fraction |= one(UInt64)
     =#
 
-    println("hey:", (false, exponent, fraction))
-
     Posit{N,ES}(false, exponent, fraction)
   end
 end
 
 doc"""
   posit_components breaks up a posit into components (sign, exp, frac)
+
 """
 function posit_components{N,ES}(x::Posit{N,ES})
   sign = (@u(x) & @signbit) != 0
@@ -186,31 +190,85 @@ end
 ## QUIRE FUNCTIONS
 
 function set!(acc::Quire, sign::Bool, exponent::Int64, frac_top::UInt64)
-  println("=================")
-  println((sign, exponent, frac_top))
   zero!(acc)  #zero the quire.
+
+  ##############################################################################
+  ## part one:  update the quire cache
+
   if sign     #if it's negative
-    acc.one_train_pos = 2047
-    acc.one_train_len = 2047 - exponent
-    acc.tail_bits_h = frac_top
+    acc.train1_pos = 2047
+    acc.train1_len = 2047 - exponent
+    acc.int1_bits_h = frac_top
   else        #if it's positive, things get trickier.
-    acc.one_train_pos = exponent
+    acc.train1_pos = exponent
     __leading_ones = leading_ones(frac_top)
-    acc.one_train_len = __leading_ones + 1
-    acc.tail_bits_h = frac_top << __leading_ones  #note that this leaves a zero at the front.
+    acc.train1_len = __leading_ones + 1
+    acc.int1_bits_h = frac_top << __leading_ones  #note that this leaves a zero at the front.
   end
+
+  ##############################################################################
+  ## part two:  update the quire scratchpad.
+
+  #first, decide how to break up the fraction into the relevant cells.  Note
+  #that the arrangement here is going to index the MSB cell as 32 and the LSB
+  #cell as 1.
+
+  # a few examples:
+  # exponent 0:
+  # value: 1.xxxx...xxxx
+  # top_cell_index = 16
+  # shift: 0
+
+  # exponent 1:
+  # value: 1x.xxxx....xxx0
+  # top_cell_index = 17
+  # shift: >> 63
+
+  # exponent -1:
+  # value: 0.0xxx...xxxx|x
+  # top_cell_index = 16
+  # shift: >> 1
+
+  #calculate the shifts and the indices.
+  println("pos: ", acc.train1_pos)
+  println("len: ", acc.train1_len)
+
+  record_position = acc.train1_pos - acc.train1_len
+  index = (record_position - 1) >> 6 + 33
+  shift = (record_position + 1) & 63
+
+  println("frac_top: ", hex(frac_top,16))
+  println("shift: $shift")
+  println("index: $index")
+
+  top_cell_content = frac_top >> (64 - shift)
+  bot_cell_content = frac_top << shift
+
+  #actually update the accumulator.  Note we don't have to check index because
+  # we can't pass it the lowest value, not for any of the things we're multiplying.
+  acc.fixed_point_value[index - 1] = bot_cell_content
+  acc.fixed_point_value[index] = top_cell_content
+
   #return the quire.
   acc
 end
 
-set!{N,ES}(acc::Quire, x::Posit{N,ES}) = set!(acc, posit_components(x)...)
-
+function set!{N,ES}(acc::Quire, x::Posit{N,ES})
+  isinf(x) && (inf!(acc); return acc)
+  set!(acc, posit_components(x)...)
+end
+#=
 function add!(acc::Quire, sign::Bool, exponent::Int64, frac_top::UInt64, frac_bot::UInt64 = 0x0000_0000_0000_0000)
-  set!(acc, sign, exponent, frac_top)  #for now.
+  if sign
+    if is_negative(acc)
+    else
+  else  #when adding positive numbers, everything is easy.
+    if exponent > ()
+  end
 end
 
 add!{N,ES}(acc::Quire, x::Posit{N,ES}) = add!(acc, posit_components(x)...)
-
+=#
 #=
 function fdp!{N,ES}(acc::Quire, a::Posit{N,ES}, b::Posit{N,ES})
 

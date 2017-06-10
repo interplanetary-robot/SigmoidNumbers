@@ -84,3 +84,33 @@ for test_val = 0x01:0xff
   set!(test_q, Posit{8,1}(test_val))
   @test Posit{8,1}(test_val) == Posit{8,1}(test_q)
 end
+
+#test that the quire fixed point array has the correct values.
+for test_val = 0x01:0xff
+  println("===============")
+  println(hex(test_val,2))
+  println("---------------")
+  set!(test_q, Posit{8,1}(test_val))
+  println(hex(test_q.fixed_point_value[33],16))
+  println(hex(test_q.fixed_point_value[32],16))
+  println(test_q.train1_pos)
+  println(test_q.train1_len)
+  prefix_val = 2.0^(test_q.train1_pos + 1) - 2.0^(test_q.train1_pos - test_q.train1_len + 1)
+  println(prefix_val)
+  test_f = test_q.fixed_point_value[33] + ((test_q.fixed_point_value[32] >> 56) / 256.0) + prefix_val
+  @test Float64(Posit{8,1}(test_val)) == test_f
+end
+
+
+#=
+#next test that adding two posits into a quire works fine.
+test_q = Quire(Posit{8,1})
+for test_x = 0x00:0xff
+  for test_y = 0x00:0xff
+    px = Posit{8,1}(test_x)
+    py = Posit{8,1}(test_y)
+    set!(test_q, px)
+    @test add!(test_q, py) == px + py
+  end
+end
+=#
