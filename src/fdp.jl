@@ -4,27 +4,21 @@ doc"""
 
   represents the 'quire' data structure.  This is a scratchpad of unsigned
   integers which represents a mutable fixed point value, useful as an
-  accumulator for fused floating point operations.  There is additional data
-  that allows you to do a 'shortcut' calculation; this exists to simulate
-  hardware implementations that can achieve pipelined/single clock cycle
+  accumulator for fused floating point operations.
+
+  Currently, no shortcut operations are supported.
 """
+
 type Quire
   fixed_point_value::Vector{UInt64}
-  #some values for shortcut evaluation.
-  #the one_train values keep track of the leading "train" of ones.  These values
-  #are not necessarily written in the quire data store.
-  one_train_pos::Int64
-  one_train_len::Int64
-  #keep track of 128 bits behind the train.
-  tail_bits_h::UInt64
-  tail_bits_l::UInt64
+  infinity::Bool
 end
 
 #a few properties:
 maxpos(::Type{Quire}) = 2047
 minpos(::Type{Quire}) = -2048
-Base.isinf(q::Quire) = (q.one_train_pos > maxpos(Quire))
-iszero(q::Quire) = (q.one_train_pos < minpos(Quire))
+Base.isinf(q::Quire) = q.infinity
+iszero(q::Quire) = mapreduce((n) -> (n == zero(UInt64)), &, true, q.fixed_point_value )
 
 #a few convenience functions.
 maximum_exponent{N,ES}(::Type{Posit{N,ES}}) = (2^(ES) * N - 2)
@@ -39,7 +33,7 @@ function (::Type{Quire}){N,ES}(::Type{Posit{N,ES}})
 
   #for now, default to accomodating an accumulator for {64, 4}.  Layout is as follows:
   # 32 words . 32 words
-  Quire(zeros(UInt64, 64), -2049, 0, 0, 0);
+  Quire(zeros(UInt64, 64), false))
 end
 
 #zeroes out the fused dot product accumulator.  Just throw out the old array.
@@ -47,20 +41,17 @@ function zero!(q::Quire)
   for idx = 1:48
     q.fixed_point_value[idx] = zero(UInt64)
   end
-
-  q.one_train_pos = -2049
-  q.one_train_len = 0
-  q.tail_bits_h = zero(UInt64)
-  q.tail_bits_l = zero(UInt64)
-  q
 end
 
 doc"""
   inf!(q::Quire) forces the quire to carry an infinite value.
 """
-inf!(q::Quire) = (q.one_train_pos = maxpos(Quire) + 1; q)
+inf!(q::Quire) = (q.infinity = true)
 
-isnegative(q::Quire) = (q.one_train_pos == 2047)
+doc"""
+  isnegative(q::Quire) checks if the quire contains a negative value.
+"""
+isnegative(q::Quire) = (last(q.fixed_point_value) & 0x8000_0000_0000_0000) != 0
 
 #this function builds a posit value based on some passed sign/exponent/fraction
 #parameters.
@@ -107,6 +98,39 @@ function (::Type{Posit{N,ES}}){N,ES}(sign::Bool, exp::Int64, frac::UInt64)
 end
 
 
+# an iterator that iterates over the quire indices and returns the fixed point
+# cell contents.
+
+immutable __p2quire_iter
+  sign::Bool
+  exp::Int64
+  frac::UInt64
+end
+
+__p2quire_iter(p::Posit{N,ES}) = __p2quire_iter(posit_components(p)...)
+
+#return the starting state, which is just index 0.
+Base.start(pi::__p2quire_iter) = 0
+#the quire iterator is finished when the index exceeds the array length.
+Base.done(pi::__p2quire_iter, index::Int64) = (index > 64)
+
+#takes the index, and the iterator object.
+function Base.next(pi::__p2quire_iter, index::Int64)
+  #return the current item and the state.
+end
+
+
+
+
+
+
+
+
+
+
+
+
+#=
 function (::Type{Posit{N,ES}}){N,ES}(q::Quire)
   #exceptional value handling:
   isinf(q) && return inf(Posit{N,ES})
@@ -120,13 +144,6 @@ function (::Type{Posit{N,ES}}){N,ES}(q::Quire)
     exponent = maximum_exponent(Posit{N,ES}) - q.one_train_len
     exponent > maximum_exponent(Posit{N,ES}) && return -realmax(Posit{N,ES})
     exponent < minimum_exponent(Posit{N,ES}) && return neg_smallest(Posit{N,ES})
-
-    #=
-      FUTURE:
-      #append a summary bit on the last position, if there are ones further below.
-
-      hasbitsbelow(q, <some number>) && fraction |= one(UInt64)
-    =#
 
 
     println("hey:", (true, exponent, f.tail_bits_h))
@@ -146,18 +163,12 @@ function (::Type{Posit{N,ES}}){N,ES}(q::Quire)
     println("f1: ", hex(fraction, 16))
     fraction = fraction >> 1
 
-    #=
-      FUTURE:
-      #append a summary bit on the last position, if there are ones further below.
-
-      hasbitsbelow(q, <some number>) && fraction |= one(UInt64)
-    =#
-
     println("hey:", (false, exponent, fraction))
 
     Posit{N,ES}(false, exponent, fraction)
   end
 end
+=#
 
 doc"""
   posit_components breaks up a posit into components (sign, exp, frac)
@@ -211,7 +222,7 @@ end
 
 add!{N,ES}(acc::Quire, x::Posit{N,ES}) = add!(acc, posit_components(x)...)
 
-#=
+
 function fdp!{N,ES}(acc::Quire, a::Posit{N,ES}, b::Posit{N,ES})
 
   #set the convenience values.
