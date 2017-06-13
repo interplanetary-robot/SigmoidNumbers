@@ -80,7 +80,46 @@ end
 
 #test loading a posit into a new quire and pulling it back out.
 test_q = Quire(Posit{8,1})
-for test_val = 0x01:0xff
+for test_val = 0x00:0xff
   set!(test_q, Posit{8,1}(test_val))
   @test Posit{8,1}(test_val) == Posit{8,1}(test_q)
+end
+
+#test loading a posit into a new quire and pulling it back out in 32 bits
+for idx = 1:10000
+  test_val = rand(UInt32)
+  set!(test_q, Posit{32,2}(test_val))
+  @test Posit{32,2}(test_val) == Posit{32,2}(test_q)
+end
+
+################################################################################
+# test adding two 32-bit posits.
+
+for test_val1 = 0x00:0xff, test_val2 = 0x00:0xff
+
+  (test_val1 == 0x80 && test_val2 == 0x80) && continue
+
+  p1 = Posit{8,1}(test_val1)
+  p2 = Posit{8,1}(test_val2)
+
+  set!(test_q, p1)
+  add!(test_q, p2)
+
+  @test (Float64(Posit{32,2}(test_q)), test_val1, test_val2) == (Float64(p1) + Float64(p2), test_val1, test_val2)
+end
+
+################################################################################
+# test multiplying two 32-bit posits.
+
+for test_val1 = 0x00:0xff, test_val2 = 0x00:0xff
+
+  (test_val1 == 0x80 && test_val2 == 0x80) && continue
+
+  p1 = Posit{8,1}(test_val1)
+  p2 = Posit{8,1}(test_val2)
+
+  SigmoidNumbers.zero!(test_q)
+  fdp!(test_q, p1, p2)
+
+  @test (Float64(Posit{32,2}(test_q)), test_val1, test_val2) == (Float64(p1) * Float64(p2), test_val1, test_val2)
 end

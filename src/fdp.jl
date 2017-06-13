@@ -33,12 +33,12 @@ function (::Type{Quire}){N,ES}(::Type{Posit{N,ES}})
 
   #for now, default to accomodating an accumulator for {64, 4}.  Layout is as follows:
   # 32 words . 32 words
-  Quire(zeros(UInt64, 64), false))
+  Quire(zeros(UInt64, 64), false)
 end
 
 #zeroes out the fused dot product accumulator.  Just throw out the old array.
 function zero!(q::Quire)
-  for idx = 1:48
+  for idx = 1:64
     q.fixed_point_value[idx] = zero(UInt64)
   end
 end
@@ -46,7 +46,7 @@ end
 doc"""
   inf!(q::Quire) forces the quire to carry an infinite value.
 """
-inf!(q::Quire) = (q.infinity = true)
+inf!(q::Quire) = (q.infinity = true; q)
 
 doc"""
   isnegative(q::Quire) checks if the quire contains a negative value.
@@ -74,6 +74,9 @@ function (::Type{Posit{N,0}}){N}(sign::Bool, exp::Int64, frac::UInt64)
 end
 
 function (::Type{Posit{N,ES}}){N,ES}(sign::Bool, exp::Int64, frac::UInt64)
+
+  (exp < -2048) && return zero(Posit{N,ES})
+
   frac = frac >> (3 + ES)
   #In both positive and negative cases, there's a straightforward translation of
   #exponent to the requisite shift.
@@ -97,81 +100,139 @@ function (::Type{Posit{N,ES}}){N,ES}(sign::Bool, exp::Int64, frac::UInt64)
   __round(reinterpret(Posit{N,ES}, frac))
 end
 
-
 # an iterator that iterates over the quire indices and returns the fixed point
 # cell contents.
 
 immutable __p2quire_iter
-  sign::Bool
+  sgn::Bool
   exp::Int64
-  frac::UInt64
+  frc::UInt64
+  zero::Bool
 end
 
-__p2quire_iter(p::Posit{N,ES}) = __p2quire_iter(posit_components(p)...)
+__p2quire_iter{N,ES}(p::Posit{N,ES}) = __p2quire_iter(posit_components(p)..., p == zero(Posit{N,ES}))
 
-#return the starting state, which is just index 0.
-Base.start(pi::__p2quire_iter) = 0
+#return the starting state, which is just index 1.
+Base.start(pi::__p2quire_iter) = 1
 #the quire iterator is finished when the index exceeds the array length.
 Base.done(pi::__p2quire_iter, index::Int64) = (index > 64)
+Base.length(pi::__p2quire_iter) = 64
 
-#takes the index, and the iterator object.
+#takes the index, and the iterator object, and returns the corresponding cell.
 function Base.next(pi::__p2quire_iter, index::Int64)
+
+  pi.zero && return (zero(UInt64), index + 1)
+
   #return the current item and the state.
-end
+  if pi.exp < (64 * (index - 33))
 
+    #           34              33                32              31
+    #            1               0                -1              -2
+    #   |________________|________________|________________|________________|
+    #    127           64 63             0 -1           -64 -65         -128
+    #                     1XXXXXXXXXXXXXXX X
+    #
+    #   63 -> 1           64 -> 2
 
+    (pi.sgn ? -one(UInt64) : zero(UInt64), index + 1)
 
+  elseif pi.exp > (64 * (index - 31) - 1)
 
+    #           34              33                32              31
+    #            1               0                -1              -2
+    #   |________________|________________|________________|________________|
+    #    127           64 63             0 -1           -64 -65         -128
+    #                   1 XXXXXXXXXXXXXXXX
+    #
+    #   -1 -> 64          -2 -> 63
 
+    (zero(UInt64), index + 1)
 
+  elseif pi.exp < (64 * (index - 32))  # top half case.
+    #           34              33                32              31
+    #            1               0                -1              -2
+    #   |________________|________________|________________|________________|
+    #    127           64 63             0 -1           -64 -65         -128
+    #                     1XXXXXXXXXXXXXXX X
+    #
 
+    # first determine the shift.  Use this value to append the front value
 
+    shift = (reinterpret(UInt64, pi.exp) & 0x3F)
 
+    prefix           = (pi.sgn ? -one(UInt64) : one(UInt64)) << shift
+    shifted_fraction = pi.frc >> (64 - shift + pi.sgn)
 
+    (prefix | shifted_fraction, index + 1)
 
+  elseif pi.exp == (64 * (index - 32)) #the strange case
 
-#=
-function (::Type{Posit{N,ES}}){N,ES}(q::Quire)
-  #exceptional value handling:
-  isinf(q) && return inf(Posit{N,ES})
-  iszero(q) && return zero(Posit{N,ES})
+    (pi.sgn ? pi.frc >> 1 : pi.frc, index + 1)
 
-  println("=================")
-  println("q:", q)
-
-  #check if the front one is at the top, in which case it's negative
-  if isnegative(q)
-    exponent = maximum_exponent(Posit{N,ES}) - q.one_train_len
-    exponent > maximum_exponent(Posit{N,ES}) && return -realmax(Posit{N,ES})
-    exponent < minimum_exponent(Posit{N,ES}) && return neg_smallest(Posit{N,ES})
-
-
-    println("hey:", (true, exponent, f.tail_bits_h))
-
-    Posit{N,ES}(true, exponent, f.tail_bits_h)
   else
-    exponent = q.one_train_pos
 
-    exponent > maximum_exponent(Posit{N,ES}) && return realmax(Posit{N,ES})
-    exponent < minimum_exponent(Posit{N,ES}) && return pos_smallest(Posit{N,ES})
+    shift = reinterpret(UInt64, pi.exp) & 0x3F - pi.sgn
 
-    #note.  fraction values for positive values should ALWAYS start with zero.
-    fraction = q.tail_bits_h | 0x8000_0000_0000_0000
-    println("f0: ", hex(fraction, 16))
-    println("shft: ", q.one_train_len - 2)
-    fraction = @u(@s(fraction) >> (q.one_train_len - 2))
-    println("f1: ", hex(fraction, 16))
-    fraction = fraction >> 1
-
-    println("hey:", (false, exponent, fraction))
-
-    Posit{N,ES}(false, exponent, fraction)
+    (pi.frc << shift, index + 1)
   end
 end
-=#
+
+
+function positvals_from(q::Quire)
+  #look at the top fixed point to get important info.
+  msword = last(q.fixed_point_value)
+
+  #determine the sign.
+  sign = (msword & 0x8000_0000_0000_0000) != 0
+  exponent = 2047 + sign
+  fractionbits = 0
+  fraction = zero(UInt64)
+  summary = false
+
+  for idx = 64:-1:1
+    current_cell = q.fixed_point_value[idx]
+
+    if fractionbits == 0
+      #we haven't seen an exponent yet.
+      exp_delta = (sign ? leading_ones(current_cell) : leading_zeros(current_cell))
+      exponent -= exp_delta
+      fractionbits = 64 - exp_delta
+      fraction = current_cell << (exp_delta + 1)
+    elseif fractionbits == -1
+      #special case where we can transfer the entire fraction over.
+      fraction = current_cell
+      fractionbits = 64
+    elseif fractionbits == 64
+      #case where we've seen everything
+      (current_cell != zero(UInt64)) && (return (sign, exponent, fraction, true))
+    else  #we have an incomplete fraction.  This cycle WILL complete it.
+      fraction |= current_cell >> (fractionbits - 1)
+      current_cell = current_cell & ((one(UInt64) << (fractionbits - 1)) - one(UInt64))
+      fractionbits = 64
+      (current_cell != zero(UInt64)) && (return (sign, exponent, fraction, true))
+    end
+  end
+  (sign, exponent, fraction, false)
+end
+
+
+function (::Type{Posit{N,ES}}){N,ES}(q::Quire)
+  #exceptional value handling:
+  isinf(q) && return Posit{N,ES}(Inf)
+
+  (sgn,exp,frc,summ) = positvals_from(q)
+
+  #check for zero
+  (exp < -2048) && return zero(Posit{N,ES})
+
+  Posit{N,ES}(sgn,exp,frc)  #for now.  We will have to manage inexacts later.
+
+end
 
 doc"""
   posit_components breaks up a posit into components (sign, exp, frac)
+
+  frac is in 2's complement.  This representation corresponds to: (-1^sign) * 2^exp + (2^exp * (1.frac))
 """
 function posit_components{N,ES}(x::Posit{N,ES})
   sign = (@u(x) & @signbit) != 0
@@ -196,42 +257,76 @@ end
 ################################################################################
 ## QUIRE FUNCTIONS
 
-function set!(acc::Quire, sign::Bool, exponent::Int64, frac_top::UInt64)
-  println("=================")
-  println((sign, exponent, frac_top))
-  zero!(acc)  #zero the quire.
-  if sign     #if it's negative
-    acc.one_train_pos = 2047
-    acc.one_train_len = 2047 - exponent
-    acc.tail_bits_h = frac_top
-  else        #if it's positive, things get trickier.
-    acc.one_train_pos = exponent
-    __leading_ones = leading_ones(frac_top)
-    acc.one_train_len = __leading_ones + 1
-    acc.tail_bits_h = frac_top << __leading_ones  #note that this leaves a zero at the front.
+function set!{N,ES}(acc::Quire, x::Posit{N,ES})
+  #shortcut evaluation of infinity.
+  isinf(x) && return inf!(acc)
+  acc.infinity = false
+
+  for (idx, cell) in zip(1:64, __p2quire_iter(x))
+    acc.fixed_point_value[idx] = cell
   end
-  #return the quire.
   acc
 end
 
-set!{N,ES}(acc::Quire, x::Posit{N,ES}) = set!(acc, posit_components(x)...)
+function add!{N,ES}(acc::Quire, x::Posit{N,ES})
 
-function add!(acc::Quire, sign::Bool, exponent::Int64, frac_top::UInt64, frac_bot::UInt64 = 0x0000_0000_0000_0000)
-  set!(acc, sign, exponent, frac_top)  #for now.
+  if isinf(x)
+    isinf(acc) && throw(NaNError)
+    return inf!(acc)
+  end
+
+  carry = false
+  for (idx, cell) in zip(1:64, __p2quire_iter(x))
+    old = acc.fixed_point_value[idx]
+    acc.fixed_point_value[idx] += cell + carry
+    carry = (acc.fixed_point_value[idx] <= old) & ((cell != zero(UInt64)) | (carry))
+  end
+  acc
 end
-
-add!{N,ES}(acc::Quire, x::Posit{N,ES}) = add!(acc, posit_components(x)...)
-
 
 function fdp!{N,ES}(acc::Quire, a::Posit{N,ES}, b::Posit{N,ES})
 
-  #set the convenience values.
-  frc_w = widemul(frc_a, frc_b)
-  frc_h = UInt64(frc_w >> 64)
-  frc_l = UInt64(frc_w & 0xFFFF_FFFF_FFFF_FFFF)
+  #the fused dot product will be calculated manually here.  For now, we'll only
+  #support 32 bit x 32 bit fdp.
 
-  return Posit{N,ES}(acc)
+  (a_sgn, a_exp, a_frc) = posit_components(a)
+
+  (b_sgn, b_exp, b_frc) = posit_components(b)
+
+  #first, take the a_frc and b_frc and shift them right by 32 bits.
+  a_frc = a_frc >> 32
+  b_frc = b_frc >> 32
+
+  #next actually do the multiplication.
+  old_fraction = fraction = a_frc * b_frc #as a 64-bit unsigned integer.
+
+  #store the carry in the front which is the biggest product of 2.
+  mulcarry = 1
+  #next, add in the a_frc value
+  fraction = fraction + a_frc
+  mulcarry += (fraction < old_fraction)
+  old_fraction = fraction
+
+  #then, add the b_frc value
+  fraction = fraction + b_frc
+  mulcarry += (fraction < old_fraction)
+
+  #exponents in multiplication are additive.
+  exponent = a_exp + b_exp
+  #finally, look at the carry and shift the product fraction accordingly.
+  (mulcarry >= 2) && (product = product >> 1; exponent += 1)
+  (mulcarry == 3) && (product |= 0x8000_0000_0000_0000)
+
+  #set up a quire iterator.
+  qi = __p2quire_iter(a_sgn $ b_sgn, exponent, fraction, false)
+
+  carry = false
+  for (idx, cell) in zip(1:64, qi)
+    old = acc.fixed_point_value[idx]
+    acc.fixed_point_value[idx] += cell + carry
+    carry = (acc.fixed_point_value[idx] <= old) & ((cell != zero(UInt64)) | (carry))
+  end
+  acc
 end
-=#
 
-export Quire, set!, add!
+export Quire, set!, add!, fdp!
