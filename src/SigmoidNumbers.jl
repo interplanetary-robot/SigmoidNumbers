@@ -22,6 +22,7 @@ module SigmoidNumbers
 
   include("Tools/fft.jl")
   include("fdp.jl")
+  include("fdp-matrixsolve.jl")
 
   #temporary
   xlsh{T <: Posit}(x::T) = reinterpret(T, (@u(x) $ (@signbit)) >> 2)

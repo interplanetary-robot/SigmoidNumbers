@@ -108,12 +108,21 @@ for test_val1 = 0x00:0xff, test_val2 = 0x00:0xff
   @test (Float64(Posit{32,2}(test_q)), test_val1, test_val2) == (Float64(p1) + Float64(p2), test_val1, test_val2)
 end
 
+
+p1 = Posit{8,1}(0x85)
+p2 = Posit{8,1}(0x8b)
+
+SigmoidNumbers.zero!(test_q)
+fdp!(test_q, p1, p2)
+
+@test (Float64(Posit{32,2}(test_q))) == Float64(p1) * Float64(p2)
+
 ################################################################################
 # test multiplying two 32-bit posits.
 
 for test_val1 = 0x00:0xff, test_val2 = 0x00:0xff
 
-  (test_val1 == 0x80 && test_val2 == 0x80) && continue
+  (test_val1 == 0x80 || test_val2 == 0x80) && continue
 
   p1 = Posit{8,1}(test_val1)
   p2 = Posit{8,1}(test_val2)

@@ -1,3 +1,7 @@
+#  fdp.jl
+#  fused dot product and related methods.
+#  this code was funded by Etaphase, inc, as part of DARPA TRADES program
+#  award number BAA-16-39
 
 doc"""
   SigmoidNumbers::Quire
@@ -36,8 +40,13 @@ function (::Type{Quire}){N,ES}(::Type{Posit{N,ES}})
   Quire(zeros(UInt64, 64), false)
 end
 
+type fquire; q::Float64; end
+(::Type{Quire})(::Type{Float64}) = fquire(zero(Float64))
+
+zero!(q::fquire) = q.q = 0
 #zeroes out the fused dot product accumulator.  Just throw out the old array.
 function zero!(q::Quire)
+  q.infinity = false
   for idx = 1:64
     q.fixed_point_value[idx] = zero(UInt64)
   end
@@ -47,6 +56,7 @@ doc"""
   inf!(q::Quire) forces the quire to carry an infinite value.
 """
 inf!(q::Quire) = (q.infinity = true; q)
+inf!(q::fquire) = (q.q = Inf; q)
 
 doc"""
   isnegative(q::Quire) checks if the quire contains a negative value.
@@ -257,6 +267,8 @@ end
 ################################################################################
 ## QUIRE FUNCTIONS
 
+set!(q::fquire, x::Float64) = (q.q = x; x)
+
 function set!{N,ES}(acc::Quire, x::Posit{N,ES})
   #shortcut evaluation of infinity.
   isinf(x) && return inf!(acc)
@@ -265,9 +277,10 @@ function set!{N,ES}(acc::Quire, x::Posit{N,ES})
   for (idx, cell) in zip(1:64, __p2quire_iter(x))
     acc.fixed_point_value[idx] = cell
   end
-  acc
+  x
 end
 
+add!(q::fquire, x::Float64) = (q.q += x; q.q)
 function add!{N,ES}(acc::Quire, x::Posit{N,ES})
 
   if isinf(x)
@@ -281,44 +294,108 @@ function add!{N,ES}(acc::Quire, x::Posit{N,ES})
     acc.fixed_point_value[idx] += cell + carry
     carry = (acc.fixed_point_value[idx] <= old) & ((cell != zero(UInt64)) | (carry))
   end
-  acc
+
+  #return the cumulative sum.
+  Posit{N,ES}(acc)
 end
 
+fdp!(q::fquire, a::Float64, b::Float64) = (q.q = fma(a, b, q.q); q.q)
 function fdp!{N,ES}(acc::Quire, a::Posit{N,ES}, b::Posit{N,ES})
+
+  #intercept exceptional cases.
+  if isinf(a)
+    (reinterpret(UInt64, a) == zero(UInt64)) && throw(NaNError(fdp!, a, b))
+    isinf(acc) && throw(NaNError(fdp!, acc, [a, b]))
+    inf!(acc)
+    return Posit{N,ES}(Inf)
+  end
+
+  if isinf(b)
+    (reinterpret(UInt64, a) == zero(UInt64)) && throw(NaNError(fdp!, [a, b]))
+    isinf(acc) && throw(NaNError(fdp!, acc, [a, b]))
+    inf!(acc)
+    return Posit{N,ES}(Inf)
+  end
+
+  #intercept zero times anything, without changing the quire value.
+  (reinterpret(UInt64, a) == zero(UInt64)) && return Posit{N,ES}(acc)
+  (reinterpret(UInt64, b) == zero(UInt64)) && return Posit{N,ES}(acc)
 
   #the fused dot product will be calculated manually here.  For now, we'll only
   #support 32 bit x 32 bit fdp.
 
   (a_sgn, a_exp, a_frc) = posit_components(a)
-
   (b_sgn, b_exp, b_frc) = posit_components(b)
 
   #first, take the a_frc and b_frc and shift them right by 32 bits.
-  a_frc = a_frc >> 32
-  b_frc = b_frc >> 32
+  a_frc_shft = a_frc >> 32
+  b_frc_shft = b_frc >> 32
 
   #next actually do the multiplication.
-  old_fraction = fraction = a_frc * b_frc #as a 64-bit unsigned integer.
+  old_fraction = fraction = (a_frc_shft * b_frc_shft)#as a 64-bit unsigned integer.
 
-  #store the carry in the front which is the biggest product of 2.
-  mulcarry = 1
+  #the carry can be up to negative 2.
+  mulcarry = 1 * (a_sgn ? -2 : 1) * (b_sgn ? -2 : 1)
+
   #next, add in the a_frc value
-  fraction = fraction + a_frc
-  mulcarry += (fraction < old_fraction)
+  if b_sgn
+    #in the case that b is negative, invert and right shift the fraction addend.
+    deltacarry = ((a_frc & 0x8000_0000_0000_0000) != 0) ? 1 : 0
+    fraction = fraction - (a_frc << 1)
+    mulcarry -= (fraction > old_fraction)
+    mulcarry -= ((a_frc & 0x8000_0000_0000_0000) != 0)
+  else
+    fraction = fraction + a_frc
+    mulcarry += (fraction < old_fraction)
+  end
+
   old_fraction = fraction
 
   #then, add the b_frc value
-  fraction = fraction + b_frc
-  mulcarry += (fraction < old_fraction)
+  if a_sgn
+    deltacarry = ((b_frc & 0x8000_0000_0000_0000) != 0) ? 1 : 0
+    fraction = fraction - (b_frc << 1)
+    mulcarry -= (fraction > old_fraction)
+    mulcarry -= ((b_frc & 0x8000_0000_0000_0000) != 0)
+  else
+    fraction = fraction + b_frc
+    mulcarry += (fraction < old_fraction)
+  end
 
   #exponents in multiplication are additive.
   exponent = a_exp + b_exp
   #finally, look at the carry and shift the product fraction accordingly.
-  (mulcarry >= 2) && (product = product >> 1; exponent += 1)
-  (mulcarry == 3) && (product |= 0x8000_0000_0000_0000)
+
+  sign = a_sgn $ b_sgn
+
+  (fraction, exponent) =
+  if     (mulcarry == -4)
+    (fraction >> 1, exponent + 1)
+  elseif (mulcarry == -3)
+    (fraction >> 1 | 0x8000_0000_0000_0000, exponent + 1)
+  elseif (mulcarry == -2)
+    (fraction, exponent)
+  elseif (mulcarry == -1)
+    (fraction << 1, exponent - 1)
+  elseif (mulcarry == 0)
+    (fraction << 1, exponent - 1)
+
+  #one, two and three can be accessible both from the product of two positives and
+  #the product of two negatives.
+  elseif (mulcarry == 1)
+    (fraction, exponent - (2 * a_sgn))
+  elseif (mulcarry == 2)
+    (fraction >> 1, exponent + (a_sgn ? -1 : 1))
+  elseif (mulcarry == 3)
+    ((fraction >> 1) | 0x8000_0000_0000_0000 , exponent + (a_sgn ? -1 : 1))
+
+  #four can only be attained by two negatives.
+  elseif (mulcarry == 4)
+    (fraction >> 2, exponent)
+  end
 
   #set up a quire iterator.
-  qi = __p2quire_iter(a_sgn $ b_sgn, exponent, fraction, false)
+  qi = __p2quire_iter(sign, exponent, fraction, false)
 
   carry = false
   for (idx, cell) in zip(1:64, qi)
@@ -326,7 +403,38 @@ function fdp!{N,ES}(acc::Quire, a::Posit{N,ES}, b::Posit{N,ES})
     acc.fixed_point_value[idx] += cell + carry
     carry = (acc.fixed_point_value[idx] <= old) & ((cell != zero(UInt64)) | (carry))
   end
-  acc
+
+  Posit{N,ES}(acc)
 end
 
-export Quire, set!, add!, fdp!
+
+################################################################################
+## some utility functions.
+
+function find_lsb(q::Quire)
+  digits_so_far = -2048
+  for idx in 1:64
+    lbits = trailing_zeros(q.fixed_point_value[idx])
+    digits_so_far += lbits
+    (lbits != 64) && break
+  end
+  digits_so_far
+end
+
+function fdp{N,ES}(v1::Vector{Posit{N,ES}}, v2::Vector{Posit{N,ES}}, q = Quire(Posit{N,ES}))
+  res = zero(Posit{N,ES})
+  for (x,y) in zip(v1, v2)
+    res = fdp!(q, x, y)
+  end
+  res
+end
+
+function exact_sum{N,ES}(v1::Vector{Posit{N,ES}}, q = Quire(Posit{N,ES}))
+  res = zero(Posit{N,ES})
+  for x in v1
+    res = add!(q, x)
+  end
+  res
+end
+
+export Quire, set!, add!, fdp!, fdp, exact_sum
