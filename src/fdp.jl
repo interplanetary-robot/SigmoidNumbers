@@ -422,6 +422,7 @@ function find_lsb(q::Quire)
 end
 
 function fdp{N,ES}(v1::Vector{Posit{N,ES}}, v2::Vector{Posit{N,ES}}, q = Quire(Posit{N,ES}))
+  zero!(q)
   res = zero(Posit{N,ES})
   for (x,y) in zip(v1, v2)
     res = fdp!(q, x, y)
@@ -437,4 +438,12 @@ function exact_sum{N,ES}(v1::Vector{Posit{N,ES}}, q = Quire(Posit{N,ES}))
   res
 end
 
-export Quire, set!, add!, fdp!, fdp, exact_sum
+function exact_mmult{N,ES}(M::Matrix{Posit{N,ES}}, v::Vector{Posit{N,ES}}, q = Quire(Posit{N,ES}))
+  [fdp(M[idx, :], v, q) for idx in 1:size(M,1)]
+end
+
+function exact_mmult{N,ES}(M1::Matrix{Posit{N,ES}}, M2::Matrix{Posit{N,ES}}, q = Quire(Posit{N,ES}))
+  [fdp(M1[idx, :], M2[:, jdx], q) for idx in 1:size(M1,1), jdx in 1:size(M2,2)]
+end
+
+export Quire, set!, add!, fdp!, fdp, exact_sum, exact_mmult

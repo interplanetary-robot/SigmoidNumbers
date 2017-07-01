@@ -71,7 +71,8 @@ end
 doc"""
   SigmoidNumbers.row_echelon!(M, v)
 
-  converts (M, v) matrix/vector into row-echelon form.  Uses quires.
+  converts (M, v) matrix/vector into row-echelon form, with partial pivoting
+  Uses quires.
 """
 function row_echelon!{T}(M::Matrix{T}, v::Vector{T}, quire = Quire(T))
   eqs = length(v)
@@ -87,6 +88,20 @@ function row_echelon!{T}(M::Matrix{T}, v::Vector{T}, quire = Quire(T))
   res = zero(T)
 
   for row = 1:eqs           #go down each row.
+    #partial pivoting.
+    if row < eqs
+      #find the maximum entry among things in this column.
+      swap_index = indmax(abs.(M[row:eqs,row])) + row - 1
+      if swap_index != row
+        cached_replacement_row = M[row, :]
+        M[row,:] = M[swap_index, :]
+        M[swap_index, :] = cached_replacement_row
+
+        cache = v[row]
+        v[row] = v[swap_index]
+        v[swap_index] = cache
+      end
+    end
 
     if row > 1
       get_unscaled_replacement_row!(cached_replacement_row, M, row, cached_coefficients, quire)
@@ -137,7 +152,7 @@ doc"""
   find_residual(M, r, v)
   calculates v - M * r, using exact dot products.
 """
-function find_residuals{T}(M::Matrix{T}, r::Vector{T}, v::Vector{T}, quire)
+function find_residuals{T}(M::Matrix{T}, r::Vector{T}, v::Vector{T}, quire = Quire(T))
   res = zeros(T, length(v))
   for dim = 1:length(v)
     set!(quire, v[dim])
