@@ -73,9 +73,6 @@
 #0b0_0000000000001_1
 @test SigmoidNumbers.__numeric_breakdown_wrapper(Vnum{16,2}(0x0003)) == (false, true, -52, 0x0000_0000_0000_0000, true)
 
-
-
-
 ## all these tests, but with negative numbers.
 @test SigmoidNumbers.__numeric_breakdown_wrapper(Posit{16,0}(0xC000)) == (true, false, 0, 0x0000_0000_0000_0000, false)
 @test SigmoidNumbers.__numeric_breakdown_wrapper(Posit{16,1}(0xC000)) == (true, false, 0, 0x0000_0000_0000_0000, false)
@@ -102,6 +99,7 @@
 @test SigmoidNumbers.__numeric_breakdown_wrapper(Posit{16,2}(0x8003)) == (true, false, 50, 0x0000_0000_0000_0000, false)
 #0b0_1111111111110_00
 @test SigmoidNumbers.__numeric_breakdown_wrapper(Posit{16,2}(0x8003)) == (true, false, 50, 0x0000_0000_0000_0000, false)
+
 
 #repeat some of these tests with valid numbers
 #0b0_10_1_00000000000_1

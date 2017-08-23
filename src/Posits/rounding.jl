@@ -13,8 +13,8 @@
     quote
       #take exact zero and exact infinity.
       if (extrabits == zero(@UInt))
-        (@u(x) == @signbit) && return reinterpret($T, @signbit)
-        (@u(x) == zero(@UInt)) && return reinterpret($T, zero(@UInt))
+        ((@u x) == @signbit) && return reinterpret($T, @signbit)
+        ((@u x) == zero(@UInt)) && return reinterpret($T, zero(@UInt))
       end
 
       truncated_value = @u(x) & $blankmask

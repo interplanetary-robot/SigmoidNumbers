@@ -19,11 +19,13 @@ M = [1.0 2.0 3.0
      2.0 5.0 5.0
      2.0 2.0 6.0]
 v = ones(3)
+
 SigmoidNumbers.row_echelon!(M, v, Quire(Float64))
 @test M == [1.0 2.0 3.0
             0.0 1.0 -1.0
             0.0 0.0 1.0]
 @test v == [1.0, -1.0, 1.5]
+
 
 r = ones(3)
 SigmoidNumbers.solve_row_echelon!(r, M, v, Quire(Float64))

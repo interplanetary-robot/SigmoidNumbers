@@ -7,11 +7,11 @@ macro Int()
 end
 
 macro u(value)
-  :(reinterpret(@UInt,$value))
+  esc(:(reinterpret(@UInt,$value)))
 end
 
 macro s(value)
-  :(reinterpret(@Int,$value))
+  esc(:(reinterpret(@Int,$value)))
 end
 
 macro signbit()
@@ -51,21 +51,23 @@ doc"""
 
   This does not handle the zero or infinity cases, which should always be dealt with separately.
 """
-macro breakdown(x...)
+macro breakdown(args...)
+
+
   goodsymbols = [:arithmetic, :numeric]
 
   #argument list handling.
-  if length(x) == 0
+  if length(args) == 0
     throw(ArgumentError("@breakdown macro requires an argument"))
-  elseif length(x) == 1
+  elseif length(args) == 1
     numeric = true
-  elseif length(x) == 2
-    (x[2] in goodsymbols) || throw(ArgumentError("option $(x[2]) unknown to @breakdown macro"))
-    numeric = (x[2] == :numeric)
+  elseif length(args) == 2
+    (args[2] in goodsymbols) || throw(ArgumentError("option $(args[2]) unknown to @breakdown macro"))
+    numeric = (args[2] == :numeric)
   else
     throw(ArgumentError("too many arguments to @breakdown macro"))
   end
-  x = x[1] #reassign the x value to the first symbol.
+  x = args[1] #reassign the x value to the first symbol.
 
   #throw an error if we don't have a simple symbol for the @breakdown macro.
   (typeof(x) == Symbol) || throw(ArgumentError("@breakdown macro can only operate on symbols."))
@@ -99,6 +101,7 @@ macro breakdown(x...)
     esc(quote
       #import the common precode
       $precode
+
       #in the normal case, calculate the exponent by counting the UNARY portion of
       #the number.  This is leading zeros for less than one, and leading ones for
       #greater than one.  Since greater than one starts at exponent zero, subtract

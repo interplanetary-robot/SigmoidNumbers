@@ -73,7 +73,7 @@ function (::Type{Posit{N,0}}){N}(sign::Bool, exp::Int64, frac::UInt64)
   exp -= sign
 
   shift = (exp < 0) ? (-exp - 1) : exp
-  frac |= (sign $ (exp < 0)) ? 0x2000_0000_0000_0000 : 0xC000_0000_0000_0000
+  frac |= (sign ⊻ (exp < 0)) ? 0x2000_0000_0000_0000 : 0xC000_0000_0000_0000
 
   sfrac = reinterpret(Int64, frac)
   frac = reinterpret(UInt64, sfrac >> shift)
@@ -98,7 +98,7 @@ function (::Type{Posit{N,ES}}){N,ES}(sign::Bool, exp::Int64, frac::UInt64)
   exp = (sign ? ((1 << ES) - 1) - exp : exp)
 
   shift = (reg < 0) ? (-reg - 1) : reg
-  frac |= (sign $ (reg < 0)) ? 0x2000_0000_0000_0000 : 0xC000_0000_0000_0000
+  frac |= (sign ⊻ (reg < 0)) ? 0x2000_0000_0000_0000 : 0xC000_0000_0000_0000
   exp_shifted = exp << (61 - ES)
   frac |= exp_shifted
 
@@ -250,7 +250,7 @@ function posit_components{N,ES}(x::Posit{N,ES})
 
   shift = max(leading_zeros(@u(x) & (~@signbit)),leading_ones(@u(x) | @signbit))
   regime = shift - 2 #(sign ? 2 : 3)
-  regime = (sign $ inverted) ? -(regime + 1) : regime
+  regime = (sign ⊻ inverted) ? -(regime + 1) : regime
 
   fraction = @u(x) << (shift + 1)
 
@@ -366,7 +366,7 @@ function fdp!{N,ES}(acc::Quire, a::Posit{N,ES}, b::Posit{N,ES})
   exponent = a_exp + b_exp
   #finally, look at the carry and shift the product fraction accordingly.
 
-  sign = a_sgn $ b_sgn
+  sign = a_sgn ⊻ b_sgn
 
   (fraction, exponent) =
   if     (mulcarry == -4)

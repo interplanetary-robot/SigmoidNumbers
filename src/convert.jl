@@ -3,7 +3,7 @@
 #let's put these functions here. We'll move them later.
 import Base.convert
 
-typealias IEEEFloat Union{Float16, Float32, Float64}
+const IEEEFloat = Union{Float16, Float32, Float64}
 
 function convert{N, ES, mode, I <: Signed}(T::Type{Sigmoid{N, ES, mode}}, int::I)
   #warn("conversion from integers not yet properly supported! $int")

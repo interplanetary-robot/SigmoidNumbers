@@ -15,7 +15,8 @@ else #default to a 64-bit environment.
   const __BITS = 64
 end
 
-bitstype __BITS Sigmoid{N, ES, mode} <: AbstractFloat
+
+primitive type Sigmoid{N,ES,mode} <: AbstractFloat __BITS end
 
 #_N{N, ES, mode}(::Type{Sigmoid{N,ES,mode}})          = N
 #_ES{N, ES, mode}(::Type{Sigmoid{N,ES,mode}})         = ES
@@ -31,19 +32,16 @@ const roundingmodes = [:guess,
   :roundin,
   :roundout]
 
-#uses the rounding mode types:
-typealias Posit{N, ES} Sigmoid{N, ES, :guess}
+#set some type aliases.
+Posit{N, ES} = Sigmoid{N, ES, :guess}
+Vnum{N, ES} = Sigmoid{N, ES, :ubit}
 
-typealias Vnum{N, ES} Sigmoid{N, ES, :ubit}
-typealias Exact{N, ES} Vnum{N, ES}
-typealias ULP{N, ES} Vnum{N, ES}
-
-immutable Valid{N, ES} <: AbstractFloat
+struct Valid{N, ES} <: AbstractFloat
   lower::Vnum{N, ES}
   upper::Vnum{N, ES}
 end
 
-export Sigmoid, Posit, Valid, Exact, ULP
+export Sigmoid, Posit, Vnum, Valid
 
 #sigmoid numbers don't natively have NaN, so NaNs should all be noisy.
 type NaNError <: Exception

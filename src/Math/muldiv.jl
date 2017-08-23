@@ -29,7 +29,7 @@ function mul_algorithm{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, E
   @breakdown rhs
 
   #sign is the xor of both signs.
-  mul_sgn = lhs_sgn $ rhs_sgn
+  mul_sgn = lhs_sgn ⊻ rhs_sgn
 
   #the multiplicative exponent is the sum of the two exponents.
   mul_exp = lhs_exp + rhs_exp
@@ -56,7 +56,7 @@ function mul_algorithm{N, mode}(lhs::Sigmoid{N, 0, mode}, rhs::Sigmoid{N, 0, mod
   @breakdown rhs arithmetic
 
   #sign is the xor of both signs.
-  mul_sgn = lhs_sgn $ rhs_sgn
+  mul_sgn = lhs_sgn ⊻ rhs_sgn
 
   #the multiplicative exponent is the product of the two exponents.
   mul_exp = lhs_exp + rhs_exp
@@ -102,7 +102,7 @@ end
     #println("rhs_exp: $rhs_exp rhs_frc: ", bits(rhs_frc)[1:N])
 
     #sign is the xor of both signs.
-    div_sgn = lhs_sgn $ rhs_sgn
+    div_sgn = lhs_sgn ⊻ rhs_sgn
 
     #do something different if rhs_frc is zero (aka power of two)
     if rhs_frc == 0

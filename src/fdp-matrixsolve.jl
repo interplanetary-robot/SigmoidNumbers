@@ -1,4 +1,6 @@
+#currently, matrix solve operations are on hold.
 
+#=
 doc"""
   SigmoidNumbers.get_unscaled_replacement_row!(rr, M, row, cache, quire)
 
@@ -242,3 +244,4 @@ exact_rowsum{N,ES}(M::Matrix{Posit{N,ES}}) = [exact_sum(M[row, :]) for row = 1:s
 Base.big{N,ES}(x::Posit{N,ES}) = big(Float64(x))
 
 export solve, refine, random_exact_matrix, exact_rowsum
+=#
