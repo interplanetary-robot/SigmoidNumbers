@@ -11,3 +11,6 @@ include("misc-test.jl")
 
 include("fdp-test.jl")
 #include("fdp-matrix-test.jl")
+
+#tests for the valids
+include("warlpiri-test.jl")

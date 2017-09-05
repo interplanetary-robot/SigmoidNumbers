@@ -36,12 +36,22 @@ const roundingmodes = [:guess,
 Posit{N, ES} = Sigmoid{N, ES, :guess}
 Vnum{N, ES} = Sigmoid{N, ES, :ubit}
 
+#there's a couple of dummy types that we'll use for syntatical sugar purposes.
+Exact{N,ES} = Sigmoid{N, ES, :exact}
+ULP{N,ES} = Sigmoid{N, ES, :ULP}
+#trampoline their constructor against the Vnum constructor.
+(::Type{Exact{N,ES}}){N,ES}(n::Unsigned)::Vnum{N,ES} = iseven(n) ? Vnum{N,ES}(n) : throw(ArgumentError("Exact numbers must have an even int representation!"))
+(::Type{ULP{N,ES}}){N,ES}(n::Unsigned)::Vnum{N,ES}   = isodd(n) ? Vnum{N,ES}(n) : throw(ArgumentError("ULP numbers must have an odd int representation!"))
+
 struct Valid{N, ES} <: AbstractFloat
   lower::Vnum{N, ES}
   upper::Vnum{N, ES}
 end
 
-export Sigmoid, Posit, Vnum, Valid
+#create a right arrow function representation for the construction of valids.
+→{N,ES}(lower::Vnum{N,ES}, upper::Vnum{N,ES}) = Valid{N,ES}(lower, upper)
+
+export Sigmoid, Posit, Vnum, Valid, Exact, ULP, →
 
 #sigmoid numbers don't natively have NaN, so NaNs should all be noisy.
 type NaNError <: Exception

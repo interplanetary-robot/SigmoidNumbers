@@ -4,19 +4,19 @@
 #up or down the ubit.
 
 macro upper(value)
-  :(Sigmoid{N,ES,:upper}($value))
+  esc(:(Sigmoid{N,ES,:upper}($value)))
 end
 
 macro lower(value)
-  :(Sigmoid{N,ES,:lower}($value))
+  esc(:(Sigmoid{N,ES,:lower}($value)))
 end
 
 macro inner(value)
-  :(Sigmoid{N,ES,:inner}($value))
+  esc(:(Sigmoid{N,ES,:inner}($value)))
 end
 
 macro outer(value)
-  :(Sigmoid{N,ES,:outer}($value))
+  esc(:(Sigmoid{N,ES,:outer}($value)))
 end
 
 #generates upper and lower statements which convert back to valids, with an
