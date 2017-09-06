@@ -32,6 +32,6 @@ end # module
 
 #temporary
 
-macro widen(x)
-  :(reinterpret(Posit{16,0}, $x))
-end
+#macro widen(x)
+#  :(reinterpret(Posit{16,0}, $x))
+#end

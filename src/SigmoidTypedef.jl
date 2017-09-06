@@ -18,10 +18,6 @@ end
 
 primitive type Sigmoid{N,ES,mode} <: AbstractFloat __BITS end
 
-#_N{N, ES, mode}(::Type{Sigmoid{N,ES,mode}})          = N
-#_ES{N, ES, mode}(::Type{Sigmoid{N,ES,mode}})         = ES
-#_mode{N, ES, mode}(::Type{Sigmoid{N,ES,mode}})       = mode
-
 #these are deliberately made incompatible with the standard rounding modes types
 #found in the julia std library.
 

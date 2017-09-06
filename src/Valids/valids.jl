@@ -11,4 +11,5 @@ include("convert.jl")
 
 include("macros.jl")
 include("addsub.jl")
-include("muldiv.jl")
+include("mul.jl")
+include("div.jl")

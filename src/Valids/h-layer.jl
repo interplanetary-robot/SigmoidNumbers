@@ -1,8 +1,9 @@
 
 function describe{N, ES}(x::Valid{N, ES}, f = println)
-  isnan(x)      && return string("Valid{$N,$ES}(∅)")                               |> f
+  isempty(x)    && return string("Valid{$N,$ES}(∅)")                               |> f
   isallreals(x) && return string("Valid{$N,$ES}(ℝp)")                              |> f
 
+  #handle special characters.
   if (x.upper == realmax(Vnum{N,ES}))
     (x.lower == zero(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ(+))")          |> f
     (x.lower == pos_smallest(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ(+*))") |> f
