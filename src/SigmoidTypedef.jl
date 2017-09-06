@@ -50,7 +50,7 @@ end
 export Sigmoid, Posit, Vnum, Valid, Exact, ULP, →
 
 #sigmoid numbers don't natively have NaN, so NaNs should all be noisy.
-type NaNError <: Exception
+struct NaNError <: Exception
   operand::Function
   parameters::Array{Any,1}
 end

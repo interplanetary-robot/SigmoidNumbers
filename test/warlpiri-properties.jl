@@ -95,6 +95,13 @@
 
     @test SigmoidNumbers.isnegative.(wmatrix) == warlpiri_isnegative
 
+    #test equality of all allreals.
+    WP_z = zero(WP)
+    WP_allreals = [next(a) → a for a in WP if a != WP_z && next(a) != WP_z]
+    for a in WP_allreals, b in WP_allreals
+        @test a == b
+    end
 
-
+    #test equality of the two null values.
+    @test (next(WP_z) → WP_z) == (WP_z → prev(WP_z))
 end

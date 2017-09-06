@@ -15,3 +15,14 @@ function Base.:/{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 #    stdmul(rhs, lhs)
 #  end
 end
+
+#do multiplicative inverses.
+
+function inv{N,ES}(x::Valid{N,ES})
+    isallreals(x) && return x
+    isempty(x) && return x
+
+end
+
+
+Base.:/{N,ES}(x::Valid{N,ES}) = inv(x)
