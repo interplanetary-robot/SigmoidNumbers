@@ -2,7 +2,7 @@ function Base.:*{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 
   (isempty(lhs)    || isempty(rhs))    && (return Valid{N,ES}(∅))
   (isallreals(lhs) || isallreals(rhs)) && (return Valid{N,ES}(ℝp))
-
+#=
   if roundsinf(lhs)
     infmul(lhs, rhs)
   elseif roundsinf(rhs)
@@ -11,20 +11,20 @@ function Base.:*{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     zeromul(lhs, rhs)
   elseif containszero(rhs)
     zeromul(rhs, lhs)
-  else
+else=#
     stdmul(rhs, lhs)
-  end
+  #end
 end
 
 const __LHS_POS_RHS_POS = 0
 const __LHS_NEG_RHS_POS = 1
 const __LHS_POS_RHS_NEG = 2
 const __LHS_NEG_RHS_NEG = 3
-
+#=
 function __upper_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES})
   #zero and infinity are annihilators.
-  (@u(lhs) & ~(@signbit)) == 0 && return lhs
-  (@u(rhs) & ~(@signbit)) == 0 && return rhs
+  iszeroinf(lhs) && return lhs
+  iszeroinf(rhs) && return rhs
 
   #check the signs, then do a stated lower mul
   __upper_mul(lhs, rhs, (@s(lhs) < 0) * 1 + (@s(rhs) < 0) * 2)
@@ -149,7 +149,7 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
   acc.lower = _l
   acc.upper = _u
 end
-
+=#
 function stdmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
   #both values are "reasonable."
   _state = (@s(lhs.lower) < 0) * 1 + (@s(rhs.lower) < 0) * 2

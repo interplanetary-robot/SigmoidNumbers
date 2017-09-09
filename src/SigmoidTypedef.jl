@@ -23,17 +23,16 @@ primitive type Sigmoid{N,ES,mode} <: AbstractFloat __BITS end
 
 const roundingmodes = [:guess,
   :ubit,
-  :roundup,
-  :rounddn,
-  :roundin,
-  :roundout]
+  :exact,
+  :upper,
+  :lower]
 
 #set some type aliases.
 Posit{N, ES} = Sigmoid{N, ES, :guess}
 Vnum{N, ES} = Sigmoid{N, ES, :ubit}
 
 #there's a couple of dummy types that we'll use for syntatical sugar purposes.
-Exact{N,ES} = Sigmoid{N, ES, :exact}
+Exact{N,ES} = Sigmoid{N, ES, :EXACT}
 ULP{N,ES} = Sigmoid{N, ES, :ULP}
 #trampoline their constructor against the Vnum constructor.
 (::Type{Exact{N,ES}}){N,ES}(n::Unsigned)::Vnum{N,ES} = iseven(n) ? Vnum{N,ES}(n) : throw(ArgumentError("Exact numbers must have an even int representation!"))
@@ -46,6 +45,9 @@ end
 
 #create a right arrow function representation for the construction of valids.
 →{N,ES}(lower::Vnum{N,ES}, upper::Vnum{N,ES}) = Valid{N,ES}(lower, upper)
+
+#create a tile constructor that builds a tile from a vnum.
+tile{N,ES}(x::Sigmoid{N,ES,:exact}) = Valid{N,ES}(reinterpret(Vnum{N,ES},x), reinterpret(Vnum{N,ES},x))
 
 export Sigmoid, Posit, Vnum, Valid, Exact, ULP, →
 

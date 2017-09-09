@@ -16,13 +16,18 @@ function Base.:/{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 #  end
 end
 
-#do multiplicative inverses.
+#do multiplicative inverses.  We cannot just chain division as a multiplication
+#with this, due to the dependency problem.
 
-function inv{N,ES}(x::Valid{N,ES})
+function Base.inv{N,ES}(x::Valid{N,ES})
     isallreals(x) && return x
     isempty(x) && return x
 
+    if istile(x) && !(isulp(x.lower))
+        (@exact x) |> inv |> tile
+    else
+        inv(@upper x) → inv(@lower x)
+    end
 end
-
 
 Base.:/{N,ES}(x::Valid{N,ES}) = inv(x)

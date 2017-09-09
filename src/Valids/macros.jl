@@ -4,32 +4,13 @@
 #up or down the ubit.
 
 macro upper(value)
-  esc(:(Sigmoid{N,ES,:upper}($value)))
+  esc(:(isulp(($value).upper) ? reinterpret(Sigmoid{N,ES,:upper}, ($value).upper |> lub) : reinterpret(Sigmoid{N,ES,:exact}, ($value).upper)))
 end
 
 macro lower(value)
-  esc(:(Sigmoid{N,ES,:lower}($value)))
+  esc(:(isulp(($value).lower) ? reinterpret(Sigmoid{N,ES,:lower}, ($value).lower |> glb) : reinterpret(Sigmoid{N,ES,:exact}, ($value).lower)))
 end
 
-macro inner(value)
-  esc(:(Sigmoid{N,ES,:inner}($value)))
-end
-
-macro outer(value)
-  esc(:(Sigmoid{N,ES,:outer}($value)))
-end
-
-#generates upper and lower statements which convert back to valids, with an
-#ulpstmt that ensures the result is an ulp if the results started as not ulps.
-
-macro upper_valid(value, ulp1, ulp2)
-  esc(quote
-    (isulp($ulp1) | isulp($ulp2)) ? lower_ulp(reinterpret(Sigmoid{N,ES,:ubit}, $value)) : reinterpret(Sigmoid{N,ES,:ubit}, $value)
-  end)
-end
-
-macro lower_valid(value, ulp1, ulp2)
-  esc(quote
-    (isulp($ulp1) | isulp($ulp2)) ? upper_ulp(reinterpret(Sigmoid{N,ES,:ubit}, $value)) : reinterpret(Sigmoid{N,ES,:ubit}, $value)
-  end)
+macro exact(value)
+  esc(:(reinterpret(Sigmoid{N,ES,:exact}, ($value).lower)))
 end

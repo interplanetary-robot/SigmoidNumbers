@@ -29,9 +29,12 @@ issubnormal{N,ES,mode}(x::Sigmoid{N, ES, mode}) = false
 isnan{N,ES,mode}(x::Sigmoid{N, ES, mode}) = false
 isfinite{N,ES,mode}(x::Sigmoid{N, ES, mode}) = (@u(x) != @signbit)
 
+#iszeroinf
+iszeroinf(x::Sigmoid) = reinterpret(@UInt, x) & (~@signbit) == 0
+
 #special constant type symbols
-type ∞; end
-type ∞n; end
+struct ∞; end
+struct ∞n; end
 
 Base.:-(::Type{∞}) = ∞n
 Base.convert{N, ES, mode}(T::Type{Sigmoid{N, ES, mode}}, ::Type{∞}) = T(Inf)

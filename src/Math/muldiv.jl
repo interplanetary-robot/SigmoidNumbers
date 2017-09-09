@@ -76,6 +76,7 @@ end
   rounds = Int(ceil(log(2,N))) + 1
   top_bit = promote(one(@UInt) << (__BITS - 1))
   bot_bit = (one(@UInt) << (__BITS - N - 1))
+
   quote
     #dividing infinities or by zero is infinite.
     if !isfinite(lhs)
@@ -176,3 +177,7 @@ end
     __round(build_numeric(Sigmoid{N, ES, mode}, div_sgn, div_exp + power_gain, div_frc))
   end
 end
+
+Base.inv{N,ES,mode}(x::Sigmoid{N,ES,mode}) = one(Sigmoid{N,ES,mode}) / x
+Base.inv{N,ES}(x::Sigmoid{N,ES,:lower}) = one(Sigmoid{N,ES,:upper}) / reinterpret(Sigmoid{N,ES,:upper}, x)
+Base.inv{N,ES}(x::Sigmoid{N,ES,:upper}) = one(Sigmoid{N,ES,:lower}) / reinterpret(Sigmoid{N,ES,:lower}, x)

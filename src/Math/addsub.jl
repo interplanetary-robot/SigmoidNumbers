@@ -1,6 +1,16 @@
 import Base: +, -
 
-@generated function +{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
+
+const addition_types = Dict((:guess, :guess) => :guess,
+                            (:exact, :exact) => :exact,
+                            (:exact, :lower) => :lower,
+                            (:exact, :upper) => :upper,
+                            (:lower, :exact) => :lower,
+                            (:upper, :exact) => :upper,
+                            (:lower, :lower) => :lower,
+                            (:upper, :upper) => :upper)
+
+@generated function +{N, ES, lhs_mode, rhs_mode}(lhs::Sigmoid{N, ES, lhs_mode}, rhs::Sigmoid{N, ES, rhs_mode})
   if (ES == 0)
     breakdown = :(@breakdown lhs arithmetic; @breakdown rhs arithmetic)
     sub_algorithm = arithmetic_sub
@@ -13,7 +23,12 @@ import Base: +, -
     build_algorithm = build_numeric
   end
 
+  haskey(addition_types, (lhs_mode, rhs_mode)) || throw(ArgumentError("incompatible types passed to addition function!"))
+  mode = addition_types[(lhs_mode, rhs_mode)]
+
   S = Sigmoid{N, ES, mode}
+
+  quotemode = QuoteNode(mode)
 
   quote
     #adding infinities is infinite.
@@ -23,6 +38,9 @@ import Base: +, -
     end
 
     isfinite(rhs) || return $S(Inf)
+
+    #correctly set the mode.
+    const mode = $quotemode
 
     #adding zeros is identity.
     (reinterpret((@UInt), lhs) == zero(@UInt)) && return rhs

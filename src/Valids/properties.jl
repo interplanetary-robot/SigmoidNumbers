@@ -19,6 +19,8 @@ Base.isnan{N,ES}(x::Valid{N,ES}) = isempty(x)
   end
 end
 
+istile{N,ES}(x::Valid{N,ES}) = (x.lower == x.upper)
+
 doc"""
     roundsinf(x::Valid)
     checks if the value "rounds infinity".  Table:
