@@ -1,6 +1,5 @@
 import Base: +, -
 
-
 const addition_types = Dict((:guess, :guess) => :guess,
                             (:exact, :exact) => :exact,
                             (:exact, :lower) => :lower,
@@ -27,24 +26,31 @@ const addition_types = Dict((:guess, :guess) => :guess,
   mode = addition_types[(lhs_mode, rhs_mode)]
 
   S = Sigmoid{N, ES, mode}
-
   quotemode = QuoteNode(mode)
 
   quote
-    #adding infinities is infinite.
-    if !isfinite(lhs)
-       isfinite(rhs) || throw(NaNError(+, [$S(Inf), $S(Inf)]))
-       return $S(Inf)
-    end
-
-    isfinite(rhs) || return $S(Inf)
-
     #correctly set the mode.
     const mode = $quotemode
 
+    #adding infinities is infinite.
+    if !isfinite(lhs)
+        if !isfinite(rhs)
+            if (mode == :guess)
+                throw(NaNError(+, [$S(Inf), $S(Inf)]))
+            elseif (lhs_mode == :exact) || (rhs_mode == :exact)
+                return Sigmoid{N,ES,:exact}(Inf)
+            else
+                return Sigmoid{N,ES,lhs_mode}(Inf)
+            end
+        end
+        return Sigmoid{N,ES,lhs_mode}(Inf)
+    end
+
+    isfinite(rhs) || return Sigmoid{N,ES,rhs_mode}(Inf)
+
     #adding zeros is identity.
-    (reinterpret((@UInt), lhs) == zero(@UInt)) && return rhs
-    (reinterpret((@UInt), rhs) == zero(@UInt)) && return lhs
+    (reinterpret((@UInt), lhs) == zero(@UInt)) && return reinterpret($S, rhs)
+    (reinterpret((@UInt), rhs) == zero(@UInt)) && return reinterpret($S, lhs)
 
     (reinterpret((@UInt), lhs) == -reinterpret((@UInt), rhs)) && return zero($S)
 
