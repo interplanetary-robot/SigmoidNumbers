@@ -22,6 +22,7 @@ const addition_types = Dict((:guess, :guess) => :guess,
     build_algorithm = build_numeric
   end
 
+  #dealing with modes for addition.
   haskey(addition_types, (lhs_mode, rhs_mode)) || throw(ArgumentError("incompatible types passed to addition function!"))
   mode = addition_types[(lhs_mode, rhs_mode)]
 

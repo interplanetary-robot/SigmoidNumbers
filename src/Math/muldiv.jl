@@ -3,52 +3,105 @@ import Base: *
 *{N, ES, mode}(lhs::Bool, rhs::Sigmoid{N, ES, mode}) = reinterpret(Sigmoid{N, ES, mode}, @s(rhs) * lhs)
 *{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Bool) = reinterpret(Sigmoid{N, ES, mode}, @s(lhs) * rhs)
 
-function *{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
-  #multiplying infinities is infinite.
-  if !isfinite(lhs)
-    (rhs == zero(Sigmoid{N, ES, mode})) && throw(NaNError(*, [lhs, rhs]))
-    return reinterpret(Sigmoid{N, ES, mode}, @signbit)
-  end
-  if !isfinite(rhs)
-    (lhs == zero(Sigmoid{N, ES, mode})) && throw(NaNError(*, [lhs, rhs]))
-    return reinterpret(Sigmoid{N, ES, mode}, @signbit)
-  end
+const multiplication_types = Dict((:guess, :guess) => :guess,
+                                  (:exact, :exact) => :exact,
+                                  (:exact, :lower) => :lower,
+                                  (:exact, :upper) => :upper,
+                                  (:lower, :exact) => :lower,
+                                  (:upper, :exact) => :upper,
+                                  (:lower, :lower) => :lower,
+                                  (:upper, :upper) => :upper)
 
-  #mulitplying zeros is zero
-  (lhs == zero(Sigmoid{N, ES, mode})) && return zero(Sigmoid{N, ES, mode})
-  (rhs == zero(Sigmoid{N, ES, mode})) && return zero(Sigmoid{N, ES, mode})
+const nanerror_code = :(throw(NaNError(*, Any[lhs, rhs])))
+const exactinf_code = :(Sigmoid{N,ES,:exact}(Inf))
+const exactzero_code = :(zero(Sigmoid{N,ES,:exact}))
+const guessinf_code = :(Sigmoid{N,ES,:guess}(Inf))
+const modeinf_code = :(Stype(Inf))
+const temporary_problem = :(throw(ErrorException("this scenario is uncertain and needs to be resolved.")))
 
-  return mul_algorithm(lhs, rhs)
+
+const multiplication_inf_zero = Dict((:guess, :guess) => nanerror_code,
+                                     (:exact, :exact) => nanerror_code,
+                                     (:exact, :lower) => exactinf_code,
+                                     (:exact, :upper) => exactinf_code,
+                                     (:lower, :exact) => exactzero_code,
+                                     (:upper, :exact) => exactzero_code,
+                                     (:lower, :lower) => temporary_problem,
+                                     (:upper, :upper) => temporary_problem)
+
+const multiplication_left_inf = Dict((:guess, :guess) => guessinf_code,
+                                     (:exact, :exact) => exactinf_code,
+                                     (:exact, :lower) => exactinf_code,
+                                     (:exact, :upper) => exactinf_code,
+                                     (:lower, :exact) => modeinf_code,
+                                     (:upper, :exact) => modeinf_code,
+                                     (:lower, :lower) => modeinf_code,
+                                     (:upper, :upper) => modeinf_code)
+
+@generated function *{N, ES, lhs_mode, rhs_mode}(lhs::Sigmoid{N, ES, lhs_mode}, rhs::Sigmoid{N, ES, rhs_mode})
+
+    #dealing with modes for multiplication
+    haskey(multiplication_types, (lhs_mode, rhs_mode)) || return :(zero(Sigmoid{N,ES, lhs_mode}))
+    #throw(ArgumentError("incompatible types passed to multiplication function! ($lhs_mode, $rhs_mode)"))
+    mode = multiplication_types[(lhs_mode, rhs_mode)]
+    infzero_code = multiplication_inf_zero[(lhs_mode,rhs_mode)]
+    zeroinf_code = multiplication_inf_zero[(rhs_mode,lhs_mode)]
+    leftinf_code = multiplication_left_inf[(lhs_mode,rhs_mode)]
+    rightinf_code = multiplication_left_inf[(rhs_mode,lhs_mode)]
+
+    S = Sigmoid{N,ES,mode}
+
+    quote
+        Stype = $S
+        #multiplying infinities is infinite.
+        if !isfinite(lhs)
+            (reinterpret((@UInt), rhs) == zero(@UInt)) && $infzero_code
+            return $leftinf_code
+        end
+        if !isfinite(rhs)
+            (reinterpret((@UInt), lhs) == zero(@UInt)) && $zeroinf_code
+            return $rightinf_code
+        end
+        #mulitplying zeros is zero
+        (reinterpret((@UInt), lhs) == zero(@UInt)) && return zero(Stype)
+        (reinterpret((@UInt), rhs) == zero(@UInt)) && return zero(Stype)
+        return mul_algorithm(lhs, rhs)
+    end
 end
 
 
-function mul_algorithm{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
+@generated function mul_algorithm{N, ES, lhs_mode, rhs_mode}(lhs::Sigmoid{N, ES, lhs_mode}, rhs::Sigmoid{N, ES, rhs_mode})
 
-  #generate the lhs and rhs subcomponents.
-  @breakdown lhs
-  @breakdown rhs
+    #dealing with modes for multiplication
+    haskey(multiplication_types, (lhs_mode, rhs_mode)) || throw(ArgumentError("incompatible types passed to multiplication function!"))
+    mode = multiplication_types[(lhs_mode, rhs_mode)]
 
-  #sign is the xor of both signs.
-  mul_sgn = lhs_sgn ⊻ rhs_sgn
+    S = Sigmoid{N,ES,mode}
+    quotemode = QuoteNode(mode)
 
-  #the multiplicative exponent is the sum of the two exponents.
-  mul_exp = lhs_exp + rhs_exp
-
-  lhs_frc = (lhs_frc >> 1) | (@signbit)
-  rhs_frc = (rhs_frc >> 1) | (@signbit)
-
-  #then calculate the fraction.
-  mul_frc = demote(promote(lhs_frc) * promote(rhs_frc))
-
-  shift = leading_zeros(mul_frc)
-  mul_frc <<= shift + 1
-  mul_exp -= (shift - 1)
-
-  __round(build_numeric(Sigmoid{N, ES, mode}, mul_sgn, mul_exp, mul_frc))
+    quote
+        #generate the lhs and rhs subcomponents.
+        mode = $quotemode
+        @breakdown lhs
+        @breakdown rhs
+        #sign is the xor of both signs.
+        mul_sgn = lhs_sgn ⊻ rhs_sgn
+        #the multiplicative exponent is the sum of the two exponents.
+        mul_exp = lhs_exp + rhs_exp
+        lhs_frc = (lhs_frc >> 1) | (@signbit)
+        rhs_frc = (rhs_frc >> 1) | (@signbit)
+        #then calculate the fraction.
+        mul_frc = demote(promote(lhs_frc) * promote(rhs_frc))
+        shift = leading_zeros(mul_frc)
+        mul_frc <<= shift + 1
+        mul_exp -= (shift - 1)
+        __round(build_numeric($S, mul_sgn, mul_exp, mul_frc))
+    end
 end
 #
 #  Multiplication with ES 0 can use arithmetic mode.
 #
+#=
 function mul_algorithm{N, mode}(lhs::Sigmoid{N, 0, mode}, rhs::Sigmoid{N, 0, mode})
   ES = 0
   #generate the lhs and rhs subcomponents.
@@ -70,6 +123,7 @@ function mul_algorithm{N, mode}(lhs::Sigmoid{N, 0, mode}, rhs::Sigmoid{N, 0, mod
 
   __round(build_arithmetic(Sigmoid{N, 0, mode}, mul_sgn, mul_exp, mul_frc))
 end
+=#
 
 @generated function Base.:/{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
   #calculate the number of rounds we should apply the goldschmidt method.
