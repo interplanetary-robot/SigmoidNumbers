@@ -19,50 +19,6 @@ const __LHS_POS_RHS_POS = 0
 const __LHS_NEG_RHS_POS = 1
 const __LHS_POS_RHS_NEG = 2
 const __LHS_NEG_RHS_NEG = 3
-#=
-function __upper_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES})
-  #zero and infinity are annihilators.
-  iszeroinf(lhs) && return lhs
-  iszeroinf(rhs) && return rhs
-
-  #check the signs, then do a stated lower mul
-  __upper_mul(lhs, rhs, (@s(lhs) < 0) * 1 + (@s(rhs) < 0) * 2)
-end
-
-
-function __upper_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES}, state)
-  if (state == __LHS_POS_RHS_POS)
-    #both positive
-    @upper_valid(@upper(lhs) * @upper(rhs), lhs, rhs)
-  elseif (state < __LHS_NEG_RHS_NEG)
-    #lower negative, upper positive
-    @upper_valid(@inner(lhs) * @inner(rhs), lhs, rhs)
-  else
-    @upper_valid(@lower(lhs) * @lower(rhs), lhs, rhs)
-  end
-end
-
-function __lower_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES})
-  #zero and infinity are annihilators.
-  (@u(lhs) & ~(@signbit)) == 0 && return lhs
-  (@u(rhs) & ~(@signbit)) == 0 && return rhs
-
-  #check the signs, then do a stated lower mul
-  __lower_mul(lhs, rhs, (@s(lhs) < 0) * 1 + (@s(rhs) < 0) * 2)
-end
-
-function __lower_mul{N,ES}(lhs::Vnum{N,ES}, rhs::Vnum{N,ES}, state)
-  if (state == __LHS_POS_RHS_POS)
-    #both positive
-    @lower_valid(@lower(lhs) * @lower(rhs), lhs, rhs)
-  elseif (state < __LHS_NEG_RHS_NEG)
-    #lower negative, upper positive
-    @lower_valid(@outer(lhs) * @outer(rhs), lhs, rhs)
-  else
-    @lower_valid(@upper(lhs) * @upper(rhs), lhs, rhs)
-  end
-end
-=#
 
 function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     if containszero(rhs)
@@ -97,11 +53,11 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     elseif roundsinf(rhs)  #now we must check if rhs rounds infinity.
 
         lower1 = (@lower lhs) * (@lower rhs)
-        lower2 = (@upper lhs) * (@upper rhs)
+        lower2 = isfinite(lhs.upper) && isfinite(rhs.upper) ? (@upper lhs) * (@upper rhs) : lower1
 
         #nb: this needs to be fixed!
         upper1 = (@lower lhs) * (@upper rhs)
-        upper2 = (@upper lhs) * (@lower rhs)
+        upper2 = isfinite(rhs.lower) ? (@upper lhs) * (@lower rhs) : upper1
 
         min(lower1, lower2) → max(upper1, upper2)
     else
@@ -109,8 +65,6 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         #canonical example:
         # (2, -3) * (5, 7) -> (10, -15)
         # (2, -3) * (-7, -5) -> (15, -10)
-
-        println("$lhs * $rhs")
 
         if (rhs.lower >= zero(Vnum{N,ES}))
             #println("rhs positive case")
@@ -128,12 +82,13 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     end
 end
 
-__simple_roundszero{T <: Valid}(v::T) = (@s(v.lower) < 0) & (@s(v.upper > 0))
+__simple_roundszero{T <: Valid}(v::T) = ((@s v.lower) < 0) & ((@s v.upper) > 0)
 
 function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
-    #=
+
   #lhs and rhs guaranteed to not cross infinity.  lhs guaranteed to contain zero.
   if __simple_roundszero(rhs)
+     #=
     # when rhs spans zero, we have to check four possible endpoints.
     lower1 = __lower_mul(lhs.lower, rhs.upper)
     lower2 = __lower_mul(lhs.upper, rhs.lower)
@@ -144,17 +99,11 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 
     # in the case where the rhs doesn't span zero, we must only multiply by the
     # extremum.
-  elseif @s(rhs.lower) >= 0
-    lower = __lower_mul(lhs.lower, rhs.upper)
-    upper = __upper_mul(lhs.upper, rhs.upper)
+    =#
+  elseif (@s rhs.lower) >= 0
+    ((@lower lhs) * (@upper rhs)) → ((@upper lhs) * (@upper rhs))
   else #rhs must be negative
-    lower = __lower_mul(lhs.upper, rhs.lower)
-    upper = __upper_mul(lhs.lower, rhs.lower)
   end
-
-  acc.lower = _l
-  acc.upper = _u
-  =#
 end
 
 function stdmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})

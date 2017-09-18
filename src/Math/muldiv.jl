@@ -14,6 +14,7 @@ const multiplication_types = Dict((:guess, :guess) => :guess,
 
 const nanerror_code = :(throw(NaNError(*, Any[lhs, rhs])))
 const exactinf_code = :(Sigmoid{N,ES,:exact}(Inf))
+const modezero_code = :(zero(Stype))
 const exactzero_code = :(zero(Sigmoid{N,ES,:exact}))
 const guessinf_code = :(Sigmoid{N,ES,:guess}(Inf))
 const modeinf_code = :(Stype(Inf))
@@ -38,6 +39,15 @@ const multiplication_left_inf = Dict((:guess, :guess) => guessinf_code,
                                      (:lower, :lower) => modeinf_code,
                                      (:upper, :upper) => modeinf_code)
 
+const multiplication_left_zero = Dict((:guess, :guess) => modezero_code,
+                                      (:exact, :exact) => exactzero_code,
+                                      (:exact, :lower) => exactzero_code,
+                                      (:exact, :upper) => exactzero_code,
+                                      (:lower, :exact) => modezero_code,
+                                      (:upper, :exact) => modezero_code,
+                                      (:lower, :lower) => modezero_code,
+                                      (:upper, :upper) => modezero_code)
+
 @generated function *{N, ES, lhs_mode, rhs_mode}(lhs::Sigmoid{N, ES, lhs_mode}, rhs::Sigmoid{N, ES, rhs_mode})
 
     #dealing with modes for multiplication
@@ -48,6 +58,8 @@ const multiplication_left_inf = Dict((:guess, :guess) => guessinf_code,
     zeroinf_code = multiplication_inf_zero[(rhs_mode,lhs_mode)]
     leftinf_code = multiplication_left_inf[(lhs_mode,rhs_mode)]
     rightinf_code = multiplication_left_inf[(rhs_mode,lhs_mode)]
+    leftzero_code = multiplication_left_zero[(lhs_mode,rhs_mode)]
+    rightzero_code = multiplication_left_zero[(rhs_mode,lhs_mode)]
 
     S = Sigmoid{N,ES,mode}
 
@@ -55,16 +67,16 @@ const multiplication_left_inf = Dict((:guess, :guess) => guessinf_code,
         Stype = $S
         #multiplying infinities is infinite.
         if !isfinite(lhs)
-            (reinterpret((@UInt), rhs) == zero(@UInt)) && $infzero_code
+            (reinterpret((@UInt), rhs) == zero(@UInt)) && return $infzero_code
             return $leftinf_code
         end
         if !isfinite(rhs)
-            (reinterpret((@UInt), lhs) == zero(@UInt)) && $zeroinf_code
+            (reinterpret((@UInt), lhs) == zero(@UInt)) && return $zeroinf_code
             return $rightinf_code
         end
         #mulitplying zeros is zero
-        (reinterpret((@UInt), lhs) == zero(@UInt)) && return zero(Stype)
-        (reinterpret((@UInt), rhs) == zero(@UInt)) && return zero(Stype)
+        (reinterpret((@UInt), lhs) == zero(@UInt)) && return $leftzero_code
+        (reinterpret((@UInt), rhs) == zero(@UInt)) && return $rightzero_code
         return mul_algorithm(lhs, rhs)
     end
 end
