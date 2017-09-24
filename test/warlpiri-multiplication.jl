@@ -62,7 +62,7 @@
     warlpiri_label_matrix = [(a, b) for a in pos_warlpiri, b in pos_warlpiri]
 
     for (expected, evaluated, l) in zip(warlpiri_prod_matrix, warlpiri_mul_test_matrix, warlpiri_label_matrix)
-        println(l)
+        #println(l)
         @test (expected, l) == (evaluated, l)
     end
 
@@ -71,7 +71,7 @@
     warlpiri_neg_label_matrix = [(a, -b) for a in pos_warlpiri, b in pos_warlpiri]
 
     for (expected, evaluated, l) in zip(warlpiri_neg_prod_matrix, warlpiri_neg_mul_test_matrix, warlpiri_neg_label_matrix)
-        println(l)
+        #println(l)
         @test (expected, l) == (evaluated, l)
     end
 

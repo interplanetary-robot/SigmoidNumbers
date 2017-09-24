@@ -2,7 +2,7 @@ function Base.:*{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     (isempty(lhs)    || isempty(rhs))    && (return Valid{N,ES}(∅))
     (isallreals(lhs) || isallreals(rhs)) && (return Valid{N,ES}(ℝp))
 
-    println("multiplying $lhs with $rhs")
+    #println("multiplying $lhs with $rhs")
 
     if roundsinf(lhs)
         infmul(lhs, rhs)
@@ -51,9 +51,9 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         if _state == __LHS_POS_RHS_POS
             res = ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * (@upper rhs))
         elseif (_state < __LHS_NEG_RHS_NEG)
-            res = ((@upper lhs) * (@lower rhs)) → ((@lower lhs) * (@upper rhs))
+            res = (@rl(@upper lhs) * (@lower rhs)) → (@ru(@lower lhs) * (@upper rhs))
         else   #state == 3
-            res = ((@upper lhs) * (@upper rhs)) → ((@lower lhs) * (@lower rhs))
+            res = (@rl(@upper lhs) * @rl(@upper rhs)) → (@ru(@lower lhs) * @ru(@lower rhs))
         end
 
         (@s prev(res.lower)) <= (@s res.upper) && (return Valid{N,ES}(ℝp))
@@ -61,10 +61,10 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 
     elseif roundsinf(rhs)  #now we must check if rhs rounds infinity.
 
-        println("lower lhs: ", @lower lhs)
-        println("lower rhs: ", @lower rhs)
-        println("upper lhs: ", @upper lhs)
-        println("upper rhs: ", @upper rhs)
+        #println("lower lhs: ", @lower lhs)
+        #println("lower rhs: ", @lower rhs)
+        #println("upper lhs: ", @upper lhs)
+        #println("upper rhs: ", @upper rhs)
 
         lower1 = (@lower lhs) * (@lower rhs)
         lower2 = isfinite(lhs.upper) && isfinite(rhs.upper) ? (@upper lhs) * (@upper rhs) : lower1
@@ -82,18 +82,25 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         # (2, -3) * (5, 7) -> (10, -15)
         # (2, -3) * (-7, -5) -> (15, -10)
 
-        if (rhs.lower >= zero(Vnum{N,ES}))
-            #println("rhs positive case")
 
-            #println("lower side1: ", (@upper lhs))
-            #println("lower side2: ", (@upper rhs))
+        if (rhs.lower > zero(Vnum{N,ES}))
+            #println("rhs positive case")
+            println("lhs: $lhs rhs: $rhs")
+            println("lower lhs: ", (@lower lhs))
+            println("lower rhs: ", (@lower rhs))
+            println("upper lhs: ", (@upper lhs))
+            println("upper rhs: ", (@upper rhs))
+
+
+            println("lower claim: $(@lower lhs) * $(@lower rhs):", (@lower lhs) * (@lower rhs))
+            println("upper claim: $(@upper lhs) * $(@lower rhs):", (@upper lhs) * @ru (@lower rhs))
 
             #println("lower: ", ((@upper lhs) * (@upper rhs)))
             #println("upper: ", ((@lower lhs) * (@upper rhs)))
-            ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * (@lower rhs))
+            ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * @ru(@lower rhs))
         else
             #println("rhs negative case")
-            ((@upper lhs) * (@upper rhs)) → ((@lower lhs) * (@upper rhs))
+            (@rl (@upper lhs) * @rl (@upper rhs)) → (@ru (@lower lhs) * (@upper rhs))
         end
     end
 end
@@ -119,6 +126,7 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
   elseif (@s rhs.lower) >= 0
     ((@lower lhs) * (@upper rhs)) → ((@upper lhs) * (@upper rhs))
   else #rhs must be negative
+    (@rl (@upper lhs) * (@lower rhs)) → (@rl (@lower lhs) * (@upper rhs))
   end
 end
 
@@ -129,11 +137,10 @@ function stdmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
   if _state == __LHS_POS_RHS_POS
     ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * (@upper rhs))
   elseif _state == __LHS_NEG_RHS_POS
-    ((@lower lhs) * (@upper rhs)) → ((@upper lhs) * (@lower rhs))
+    ((@lower lhs) * @rl(@upper rhs)) → ((@upper lhs) * @ru(@lower rhs))
   elseif _state == __LHS_POS_RHS_NEG
-    ((@upper lhs) * (@lower rhs)) → ((@lower lhs) * (@upper rhs))
+    (@rl(@upper lhs) * (@lower rhs)) → (@ru(@lower lhs) * (@upper rhs))
   else #__LHS_NEG_RHS_NEG
-    ((@upper lhs) * (@upper rhs)) → ((@lower lhs) * (@lower rhs))
+    (@rl(@upper lhs) * @rl(@upper rhs)) → (@ru(@lower lhs) * @ru(@lower rhs))
   end
-
 end

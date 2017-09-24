@@ -51,7 +51,7 @@ function bits{N,ES}(x::Valid{N,ES}, separator::AbstractString)
 end
 
 function show{N,ES}(io::IO, x::Valid{N,ES})
-  println(io, x.lower, " → " , x.upper)
+  print(io, x.lower, " → " , x.upper)
 end
 
 export describe
