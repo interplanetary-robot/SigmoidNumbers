@@ -4,15 +4,15 @@ function describe{N, ES}(x::Valid{N, ES}, f = println)
   isallreals(x) && return string("Valid{$N,$ES}(ℝp)")                              |> f
 
   #handle special characters.
-  if (x.upper == realmax(Vnum{N,ES}))
+  if (x.upper == maxpos(Vnum{N,ES}))
     (x.lower == zero(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ(+))")          |> f
-    (x.lower == pos_smallest(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ(+*))") |> f
-    (x.lower == -realmax(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ)")         |> f
+    (x.lower == minpos(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ(+*))") |> f
+    (x.lower == -maxpos(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ)")         |> f
   end
 
-  if (x.lower == -realmax(Vnum{N,ES}))
+  if (x.lower == -maxpos(Vnum{N,ES}))
     (x.upper == zero(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ(-))")          |> f
-    (x.upper == neg_smallest(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ(-*))") |> f
+    (x.upper == maxneg(Vnum{N,ES})) && return string("Valid{$N,$ES}(ℝ(-*))") |> f
   end
 
   if N <= 32

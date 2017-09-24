@@ -1,6 +1,10 @@
 using SigmoidNumbers
 using Base.Test
 
+
+#println(*(Exact{4,0}(0b1000) → Exact{4,0}(0b1000), Exact{4,0}(0b1000) → Exact{4,0}(0b1000)))
+
+
 include("h-layer-test.jl")
 include("breakdown-test.jl")
 

@@ -1,6 +1,6 @@
 
 #unify the three modes because we'll use the same mode for all of them.
-RoundedSigmoid{N,ES} = Union{Sigmoid{N,ES,:upper}, Sigmoid{N,ES,:lower}, Sigmoid{N,ES,:exact}}
+RoundedSigmoid{N,ES} = Union{Sigmoid{N,ES,:upper}, Sigmoid{N,ES,:lower}, Sigmoid{N,ES,:exact}, Sigmoid{N,ES,:cross}}
 
 @generated function __round{N, ES}(x::RoundedSigmoid{N, ES}, extrabits::(@UInt) = zero(@UInt))
   #for convenience, store the type of x as T.
@@ -38,6 +38,7 @@ resolve_rounding{N,ES}(x::Sigmoid{N,ES,:lower}) = upper_ulp(reinterpret(Sigmoid{
 resolve_rounding{N,ES}(x::Sigmoid{N,ES,:upper}) = lower_ulp(reinterpret(Sigmoid{N,ES,:ubit}, x))
 resolve_rounding{N,ES}(x::Sigmoid{N,ES,:exact}) = reinterpret(Sigmoid{N,ES,:ubit}, x)
 
-function →{N,ES}(lower::RoundedSigmoid{N,ES}, upper::RoundedSigmoid{N,ES})
-    Valid{N,ES}(resolve_rounding(lower), resolve_rounding(upper))
-end
+→{N,ES}(lower::RoundedSigmoid{N,ES}, upper::RoundedSigmoid{N,ES}) = resolve_rounding(lower)                 → resolve_rounding(upper)
+→{N,ES}(lower::Sigmoid{N,ES,:cross}, upper::RoundedSigmoid{N,ES}) = reinterpret(Sigmoid{N,ES,:lower},lower) → upper
+→{N,ES}(lower::RoundedSigmoid{N,ES}, upper::Sigmoid{N,ES,:cross}) = lower                                   → reinterpret(Sigmoid{N,ES,:upper},upper)
+→{N,ES}(lower::Sigmoid{N,ES,:cross}, upper::Sigmoid{N,ES,:cross}) = reinterpret(Sigmoid{N,ES,:lower},lower) → reinterpret(Sigmoid{N,ES,:upper},upper)

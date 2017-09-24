@@ -2,6 +2,8 @@ function Base.:*{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     (isempty(lhs)    || isempty(rhs))    && (return Valid{N,ES}(∅))
     (isallreals(lhs) || isallreals(rhs)) && (return Valid{N,ES}(ℝp))
 
+    println("multiplying $lhs with $rhs")
+
     if roundsinf(lhs)
         infmul(lhs, rhs)
     elseif roundsinf(rhs)
@@ -19,6 +21,13 @@ const __LHS_POS_RHS_POS = 0
 const __LHS_NEG_RHS_POS = 1
 const __LHS_POS_RHS_NEG = 2
 const __LHS_NEG_RHS_NEG = 3
+
+doc"""
+  nonnegative(::Valid) is true if no values in x are negative.
+"""
+function nonnegative{N,ES}(x::Valid{N,ES})
+    (x.lower <= zero(Vnum{N,ES})) && (!isfinite(x.upper) || zero(num{N,ES}) <= x.upper <= maxpos(Vnum{N,ES}))
+end
 
 function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     if containszero(rhs)
@@ -52,12 +61,19 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 
     elseif roundsinf(rhs)  #now we must check if rhs rounds infinity.
 
+        println("lower lhs: ", @lower lhs)
+        println("lower rhs: ", @lower rhs)
+        println("upper lhs: ", @upper lhs)
+        println("upper rhs: ", @upper rhs)
+
         lower1 = (@lower lhs) * (@lower rhs)
         lower2 = isfinite(lhs.upper) && isfinite(rhs.upper) ? (@upper lhs) * (@upper rhs) : lower1
 
-        #nb: this needs to be fixed!
-        upper1 = (@lower lhs) * (@upper rhs)
-        upper2 = isfinite(rhs.lower) ? (@upper lhs) * (@lower rhs) : upper1
+        upper1 = @ru ((@lower lhs) * (@upper rhs))
+        upper2 = @ru ((@upper lhs) * (@lower rhs))
+
+        upper1 = isfinite(lhs.lower) ? upper1 : upper2
+        upper2 = isfinite(rhs.lower) ? upper2 : upper1
 
         min(lower1, lower2) → max(upper1, upper2)
     else

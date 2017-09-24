@@ -14,3 +14,19 @@ end
 macro exact(value)
   esc(:(reinterpret(Sigmoid{N,ES,:exact}, ($value).lower)))
 end
+
+recast_as_lower{N,ES}(x::Sigmoid{N,ES,:exact}) = x
+recast_as_lower{N,ES}(x::Sigmoid{N,ES,:lower}) = x
+recast_as_lower{N,ES}(x::Sigmoid{N,ES,:cross}) = reinterpret(Sigmoid{N,ES,:lower}, x)
+recast_as_lower{N,ES}(x::Sigmoid{N,ES,:upper}) = reinterpret(Sigmoid{N,ES,:lower}, x)
+macro rl(value)
+  esc(:(recast_as_lower($value)))
+end
+
+recast_as_upper{N,ES}(x::Sigmoid{N,ES,:exact}) = x
+recast_as_upper{N,ES}(x::Sigmoid{N,ES,:upper}) = x
+recast_as_upper{N,ES}(x::Sigmoid{N,ES,:cross}) = reinterpret(Sigmoid{N,ES,:upper}, x)
+recast_as_upper{N,ES}(x::Sigmoid{N,ES,:lower}) = reinterpret(Sigmoid{N,ES,:upper}, x)
+macro ru(value)
+  esc(:(recast_as_upper($value)))
+end

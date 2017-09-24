@@ -3,6 +3,7 @@ import Base: *
 *{N, ES, mode}(lhs::Bool, rhs::Sigmoid{N, ES, mode}) = reinterpret(Sigmoid{N, ES, mode}, @s(rhs) * lhs)
 *{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Bool) = reinterpret(Sigmoid{N, ES, mode}, @s(lhs) * rhs)
 
+#introduce a "cross" mode which requires a reconversion in order to proceed.
 const multiplication_types = Dict((:guess, :guess) => :guess,
                                   (:exact, :exact) => :exact,
                                   (:exact, :lower) => :lower,
@@ -10,7 +11,9 @@ const multiplication_types = Dict((:guess, :guess) => :guess,
                                   (:lower, :exact) => :lower,
                                   (:upper, :exact) => :upper,
                                   (:lower, :lower) => :lower,
-                                  (:upper, :upper) => :upper)
+                                  (:upper, :upper) => :upper,
+                                  (:lower, :upper) => :cross,
+                                  (:upper, :lower) => :cross)
 
 const nanerror_code = :(throw(NaNError(*, Any[lhs, rhs])))
 const exactinf_code = :(Sigmoid{N,ES,:exact}(Inf))
@@ -18,7 +21,7 @@ const modezero_code = :(zero(Stype))
 const exactzero_code = :(zero(Sigmoid{N,ES,:exact}))
 const guessinf_code = :(Sigmoid{N,ES,:guess}(Inf))
 const modeinf_code = :(Stype(Inf))
-const temporary_problem = :(throw(ErrorException("this scenario is uncertain and needs to be resolved.")))
+const temporary_problem = :(throw(ErrorException("this scenario is uncertain and needs to be resolved: $lhs * $rhs")))
 
 
 const multiplication_inf_zero = Dict((:guess, :guess) => nanerror_code,
@@ -28,7 +31,9 @@ const multiplication_inf_zero = Dict((:guess, :guess) => nanerror_code,
                                      (:lower, :exact) => exactzero_code,
                                      (:upper, :exact) => exactzero_code,
                                      (:lower, :lower) => temporary_problem,
-                                     (:upper, :upper) => temporary_problem)
+                                     (:upper, :upper) => temporary_problem,
+                                     (:upper, :lower) => temporary_problem,
+                                     (:lower, :upper) => temporary_problem)
 
 const multiplication_left_inf = Dict((:guess, :guess) => guessinf_code,
                                      (:exact, :exact) => exactinf_code,
@@ -37,7 +42,9 @@ const multiplication_left_inf = Dict((:guess, :guess) => guessinf_code,
                                      (:lower, :exact) => modeinf_code,
                                      (:upper, :exact) => modeinf_code,
                                      (:lower, :lower) => modeinf_code,
-                                     (:upper, :upper) => modeinf_code)
+                                     (:upper, :upper) => modeinf_code,
+                                     (:upper, :lower) => :(Sigmoid{N,ES,:lower}(Inf)),
+                                     (:lower, :upper) => :(Sigmoid{N,ES,:lower}(Inf)))
 
 const multiplication_left_zero = Dict((:guess, :guess) => modezero_code,
                                       (:exact, :exact) => exactzero_code,
@@ -46,7 +53,9 @@ const multiplication_left_zero = Dict((:guess, :guess) => modezero_code,
                                       (:lower, :exact) => modezero_code,
                                       (:upper, :exact) => modezero_code,
                                       (:lower, :lower) => modezero_code,
-                                      (:upper, :upper) => modezero_code)
+                                      (:upper, :upper) => modezero_code,
+                                      (:upper, :lower) => :(zero(Sigmoid{N,ES,:upper})),
+                                      (:lower, :upper) => :(zero(Sigmoid{N,ES,:upper})))
 
 @generated function *{N, ES, lhs_mode, rhs_mode}(lhs::Sigmoid{N, ES, lhs_mode}, rhs::Sigmoid{N, ES, rhs_mode})
 
