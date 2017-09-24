@@ -50,7 +50,9 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 
         if _state == __LHS_POS_RHS_POS
             res = ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * (@upper rhs))
-        elseif (_state < __LHS_NEG_RHS_NEG)
+        elseif (_state == __LHS_NEG_RHS_POS)
+            res = ((@ru(@lower lhs) * (@upper rhs)) → (@rl(@upper lhs) * (@lower rhs)))
+        elseif (_state == __LHS_POS_RHS_NEG)
             res = (@rl(@upper lhs) * (@lower rhs)) → (@ru(@lower lhs) * (@upper rhs))
         else   #state == 3
             res = (@rl(@upper lhs) * @rl(@upper rhs)) → (@ru(@lower lhs) * @ru(@lower rhs))
@@ -60,11 +62,6 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         return res
 
     elseif roundsinf(rhs)  #now we must check if rhs rounds infinity.
-
-        #println("lower lhs: ", @lower lhs)
-        #println("lower rhs: ", @lower rhs)
-        #println("upper lhs: ", @upper lhs)
-        #println("upper rhs: ", @upper rhs)
 
         lower1 = (@lower lhs) * (@lower rhs)
         lower2 = isfinite(lhs.upper) && isfinite(rhs.upper) ? (@upper lhs) * (@upper rhs) : lower1
@@ -84,22 +81,8 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 
 
         if (rhs.lower > zero(Vnum{N,ES}))
-            #println("rhs positive case")
-            println("lhs: $lhs rhs: $rhs")
-            println("lower lhs: ", (@lower lhs))
-            println("lower rhs: ", (@lower rhs))
-            println("upper lhs: ", (@upper lhs))
-            println("upper rhs: ", (@upper rhs))
-
-
-            println("lower claim: $(@lower lhs) * $(@lower rhs):", (@lower lhs) * (@lower rhs))
-            println("upper claim: $(@upper lhs) * $(@lower rhs):", (@upper lhs) * @ru (@lower rhs))
-
-            #println("lower: ", ((@upper lhs) * (@upper rhs)))
-            #println("upper: ", ((@lower lhs) * (@upper rhs)))
             ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * @ru(@lower rhs))
         else
-            #println("rhs negative case")
             (@rl (@upper lhs) * @rl (@upper rhs)) → (@ru (@lower lhs) * (@upper rhs))
         end
     end
@@ -108,7 +91,6 @@ end
 __simple_roundszero{T <: Valid}(v::T) = ((@s v.lower) < 0) & ((@s v.upper) > 0)
 
 function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
-
   #lhs and rhs guaranteed to not cross infinity.  lhs guaranteed to contain zero.
   if __simple_roundszero(rhs)
      #=
@@ -124,7 +106,7 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     # extremum.
     =#
   elseif (@s rhs.lower) >= 0
-    ((@lower lhs) * (@upper rhs)) → ((@upper lhs) * (@upper rhs))
+    ((@lower lhs) * @rl (@upper rhs)) → ((@upper lhs) * (@upper rhs))
   else #rhs must be negative
     (@rl (@upper lhs) * (@lower rhs)) → (@rl (@lower lhs) * (@upper rhs))
   end
