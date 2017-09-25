@@ -65,29 +65,31 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         # (-1, -100) * (-4, -3) -> (300, 4)    (u * u, l * l)
         =#
 
-        _state = (@s(lhs.lower) < 0) * 1 + (@s(rhs.lower) < 0) * 2
+        _state = nonpositive(lhs) * 1 + nonpositive(rhs) * 2
 
         if _state == __LHS_POS_RHS_POS
-            res = ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * (@upper rhs))
+            res = ((@d_lower lhs) * (@d_lower rhs)) → ((@d_upper lhs) * (@d_upper rhs))
         elseif (_state == __LHS_NEG_RHS_POS)
-            res = ((@ru(@lower lhs) * (@upper rhs)) → (@rl(@upper lhs) * (@lower rhs)))
+            res = ((@d_lower lhs) * (@d_upper rhs)) → ((@d_upper lhs) * (@d_lower rhs))
         elseif (_state == __LHS_POS_RHS_NEG)
-            res = (@rl(@upper lhs) * (@lower rhs)) → (@ru(@lower lhs) * (@upper rhs))
+            res = ((@d_upper lhs) * (@d_lower rhs)) → ((@d_lower lhs) * (@d_upper rhs))
         else   #state == 3
-            res = (@rl(@upper lhs) * @rl(@upper rhs)) → (@ru(@lower lhs) * @ru(@lower rhs))
+            res = ((@d_upper lhs) * (@d_upper rhs)) → ((@d_lower lhs) * (@d_lower rhs))
         end
 
         (@s prev(res.lower)) <= (@s res.upper) && (return Valid{N,ES}(ℝp))
         return res
 
     elseif roundsinf(rhs)  #now we must check if rhs rounds infinity.
-        lower1 = (@lower lhs) * (@lower rhs)
-        lower2 = (@rl(@upper lhs)) * (@rl(@upper rhs))
+        #=
+        lower1 = (@d_lower lhs) * (@d_lower rhs)
+        lower2 = (@d_upper lhs) * (@d_upper rhs)
 
-        upper1 = @ru ((@lower lhs) * (@upper rhs))
-        upper2 = @ru ((@upper lhs) * (@lower rhs))
+        upper1 = (@d_lower lhs) * (@d_upper rhs)
+        upper2 = (@d_upper lhs) * (@d_lower rhs)
 
         min_not_inf(lower1, lower2) → max_not_inf(upper1, upper2)
+        =#
     else
         #the last case is if lhs rounds infinity but rhs is a "well-behaved" value.
         #canonical example:
@@ -96,9 +98,9 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 
 
         if (rhs.lower > zero(Vnum{N,ES}))
-            ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * @ru(@lower rhs))
+            ((@d_lower lhs) * (@d_lower rhs)) → ((@d_upper lhs) * (@d_lower rhs))
         else
-            (@rl (@upper lhs) * @rl (@upper rhs)) → (@ru (@lower lhs) * (@upper rhs))
+            ((@d_upper lhs) * (@d_upper rhs)) → ((@d_lower lhs) * (@d_upper rhs))
         end
     end
 end
@@ -124,11 +126,11 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
       _state = nonpositive(lhs) * 1 + nonpositive(rhs) * 2
 
       if _state == __LHS_POS_RHS_POS
-          ((@lower lhs) * @rl (@upper rhs)) → ((@upper lhs) * (@upper rhs))
+          ((@d_lower lhs) * (@d_upper rhs)) → ((@d_upper lhs) * (@d_upper rhs))
       elseif (_state == __LHS_NEG_RHS_POS)
-          (@d_lower lhs) * (@d_upper rhs) → (@d_upper lhs) * (@d_lower rhs)
+          ((@d_lower lhs) * (@d_upper rhs)) → ((@d_upper lhs) * (@d_lower rhs))
       elseif (_state == __LHS_POS_RHS_NEG)
-          ((@rl (@upper lhs)) * (@lower rhs)) → ((@ru (@lower lhs)) * (@upper rhs))
+          ((@d_upper lhs) * (@d_lower rhs)) → ((@d_lower lhs) * (@d_upper rhs))
       else   #state == 3
           ((@d_upper lhs) * (@d_upper rhs)) → ((@d_lower lhs) * (@d_lower rhs))
       end
@@ -137,15 +139,15 @@ end
 
 function stdmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
   #both values are "reasonable."
-  _state = (@s(lhs.lower) < 0) * 1 + (@s(rhs.lower) < 0) * 2
+  _state = nonpositive(lhs) * 1 + nonpositive(rhs) * 2
 
   if _state == __LHS_POS_RHS_POS
-    ((@lower lhs) * (@lower rhs)) → ((@upper lhs) * (@upper rhs))
+    ((@d_lower lhs) * (@d_lower rhs)) → ((@d_upper lhs) * (@d_upper rhs))
   elseif _state == __LHS_NEG_RHS_POS
-    ((@lower lhs) * @rl(@upper rhs)) → ((@upper lhs) * @ru(@lower rhs))
+    ((@d_lower lhs) * (@d_upper rhs)) → ((@d_upper lhs) * (@d_lower rhs))
   elseif _state == __LHS_POS_RHS_NEG
-    (@rl(@upper lhs) * (@lower rhs)) → (@ru(@lower lhs) * (@upper rhs))
+    ((@d_upper lhs) * (@d_lower rhs)) → ((@d_lower lhs) * (@d_upper rhs))
   else #__LHS_NEG_RHS_NEG
-    (@rl(@upper lhs) * @rl(@upper rhs)) → (@ru(@lower lhs) * @ru(@lower rhs))
+    ((@d_upper lhs) * (@d_upper rhs)) → ((@d_lower lhs) * (@d_lower rhs))
   end
 end
