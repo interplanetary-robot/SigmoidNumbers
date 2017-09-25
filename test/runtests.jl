@@ -1,8 +1,7 @@
 using SigmoidNumbers
 using Base.Test
 
-
-#*(ULP{4,0}(0b0111) → ULP{4,0}(0b0111), Exact{4,0}(0b1010) → Exact{4,0}(0b0000)) |> println
+#*(ULP{4,0}(0b0111) → ULP{4,0}(0b0111), ULP{4,0}(0b1001) → Exact{4,0}(0b0000)) |> println
 #exit()
 
 include("h-layer-test.jl")

@@ -75,5 +75,17 @@
         @test (expected, l) == (evaluated, l)
     end
 
+    for a in pos_warlpiri, b in pos_warlpiri
+        #println("$(-a) * $(-b)")
+        x = -a * -b
+    end
+
+    warlpiri_dneg_mul_test_matrix = [-a * -b for a in pos_warlpiri, b in pos_warlpiri]
+    warlpiri_dneg_label_matrix = [(-a, -b) for a in pos_warlpiri, b in pos_warlpiri]
+
+    for (expected, evaluated, l) in zip(warlpiri_prod_matrix, warlpiri_dneg_mul_test_matrix, warlpiri_dneg_label_matrix)
+        #println(l)
+        @test (expected, l) == (evaluated, l)
+    end
 
 end

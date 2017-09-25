@@ -29,6 +29,25 @@ function nonnegative{N,ES}(x::Valid{N,ES})
     (x.lower <= zero(Vnum{N,ES})) && (!isfinite(x.upper) || zero(num{N,ES}) <= x.upper <= maxpos(Vnum{N,ES}))
 end
 
+doc"""
+  nonpositive(::Valid) is true if no values in x are positive.
+"""
+function nonpositive{N,ES}(x::Valid{N,ES})
+    (x.upper <= zero(Vnum{N,ES})) && (!isfinite(x.lower) || minneg(Vnum{N,ES}) <= x.lower <= zero(Vnum{N,ES}))
+end
+
+function min_not_inf{N,ES,mode1,mode2}(x::Sigmoid{N,ES,mode1}, y::Sigmoid{N,ES,mode2})
+    isfinite(x) || return y
+    isfinite(y) || return x
+    min(x, y)
+end
+
+function max_not_inf{N,ES,mode1,mode2}(x::Sigmoid{N,ES,mode1}, y::Sigmoid{N,ES,mode2})
+    isfinite(x) || return y
+    isfinite(y) || return x
+    max(x, y)
+end
+
 function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     if containszero(rhs)
         return Valid{N,ES}(ℝp)
@@ -62,17 +81,13 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         return res
 
     elseif roundsinf(rhs)  #now we must check if rhs rounds infinity.
-
         lower1 = (@lower lhs) * (@lower rhs)
-        lower2 = isfinite(lhs.upper) && isfinite(rhs.upper) ? (@upper lhs) * (@upper rhs) : lower1
+        lower2 = (@rl(@upper lhs)) * (@rl(@upper rhs))
 
         upper1 = @ru ((@lower lhs) * (@upper rhs))
         upper2 = @ru ((@upper lhs) * (@lower rhs))
 
-        upper1 = isfinite(lhs.lower) ? upper1 : upper2
-        upper2 = isfinite(rhs.lower) ? upper2 : upper1
-
-        min(lower1, lower2) → max(upper1, upper2)
+        min_not_inf(lower1, lower2) → max_not_inf(upper1, upper2)
     else
         #the last case is if lhs rounds infinity but rhs is a "well-behaved" value.
         #canonical example:
@@ -105,10 +120,23 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     # in the case where the rhs doesn't span zero, we must only multiply by the
     # extremum.
     =#
-  elseif (@s rhs.lower) >= 0
-    ((@lower lhs) * @rl (@upper rhs)) → ((@upper lhs) * (@upper rhs))
-  else #rhs must be negative
-    (@rl (@upper lhs) * (@lower rhs)) → (@rl (@lower lhs) * (@upper rhs))
+  else
+      lhs_lower = @d_lower lhs
+      lhs_upper = @d_upper lhs
+      rhs_lower = @d_lower rhs
+      rhs_upper = @d_upper rhs
+
+      _state = nonpositive(lhs) * 1 + nonpositive(rhs) * 2
+
+      if _state == __LHS_POS_RHS_POS
+          ((@lower lhs) * @rl (@upper rhs)) → ((@upper lhs) * (@upper rhs))
+      elseif (_state == __LHS_NEG_RHS_POS)
+          (@d_lower lhs) * (@d_upper rhs) → (@d_upper lhs) * (@d_lower rhs)
+      elseif (_state == __LHS_POS_RHS_NEG)
+          ((@rl (@upper lhs)) * (@lower rhs)) → ((@ru (@lower lhs)) * (@upper rhs))
+      else   #state == 3
+          ((@d_upper lhs) * (@d_upper rhs)) → ((@d_lower lhs) * (@d_lower rhs))
+      end
   end
 end
 

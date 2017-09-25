@@ -1,8 +1,9 @@
 
 #unify the three modes because we'll use the same mode for all of them.
-RoundedSigmoid{N,ES} = Union{Sigmoid{N,ES,:upper}, Sigmoid{N,ES,:lower}, Sigmoid{N,ES,:exact}, Sigmoid{N,ES,:cross}}
+RoundedSigmoid{N,ES} = Union{Sigmoid{N,ES,:upper}, Sigmoid{N,ES,:lower}, Sigmoid{N,ES,:exact}, Sigmoid{N,ES,:cross}, Sigmoid{N,ES,:outward_exact}, Sigmoid{N,ES,:inward_exact}}
+Direct_Sigmoid{N,ES} = Union{Sigmoid{N,ES,:outward_ulp}, Sigmoid{N,ES,:inward_ulp}}
 
-@generated function __round{N, ES}(x::RoundedSigmoid{N, ES}, extrabits::(@UInt) = zero(@UInt))
+@generated function __round{N, ES}(x::Union{RoundedSigmoid{N, ES}, Direct_Sigmoid{N,ES}}, extrabits::(@UInt) = zero(@UInt))
   #for convenience, store the type of x as T.
   T = x
   z = zero(@UInt)
@@ -34,9 +35,61 @@ RoundedSigmoid{N,ES} = Union{Sigmoid{N,ES,:upper}, Sigmoid{N,ES,:lower}, Sigmoid
   end
 end
 
-resolve_rounding{N,ES}(x::Sigmoid{N,ES,:lower}) = upper_ulp(reinterpret(Sigmoid{N,ES,:ubit}, x))
-resolve_rounding{N,ES}(x::Sigmoid{N,ES,:upper}) = lower_ulp(reinterpret(Sigmoid{N,ES,:ubit}, x))
-resolve_rounding{N,ES}(x::Sigmoid{N,ES,:exact}) = reinterpret(Sigmoid{N,ES,:ubit}, x)
+resolve_rounding{N,ES}(x::Sigmoid{N,ES,:lower})         = upper_ulp(reinterpret(Sigmoid{N,ES,:ubit}, x))
+resolve_rounding{N,ES}(x::Sigmoid{N,ES,:upper})         = lower_ulp(reinterpret(Sigmoid{N,ES,:ubit}, x))
+resolve_rounding{N,ES}(x::Sigmoid{N,ES,:exact})         = reinterpret(Sigmoid{N,ES,:ubit}, x)
+resolve_rounding{N,ES}(x::Sigmoid{N,ES,:outward_exact}) = reinterpret(Sigmoid{N,ES,:ubit}, x)
+resolve_rounding{N,ES}(x::Sigmoid{N,ES,:inward_exact})  = reinterpret(Sigmoid{N,ES,:ubit}, x)
+
+#special resolve_roundings which require an extra specification.
+function resolve_rounding{N,ES}(x::Sigmoid{N,ES,:outward_ulp}, ::Type{Val{:upper}})
+    if !isfinite(x)
+        throw(ArgumentError("an outward ulp cannot be infinite"))
+    elseif Base.iszero(x)
+        maxneg(Vnum{N,ES})
+    elseif x < zero(x)
+        lower_ulp(reinterpret(Vnum{N,ES},x))
+    else
+        upper_ulp(reinterpret(Vnum{N,ES},x))
+    end
+end
+function resolve_rounding{N,ES}(x::Sigmoid{N,ES,:outward_ulp}, ::Type{Val{:lower}})
+    if !isfinite(x)
+        throw(ArgumentError("an outward ulp cannot be infinite"))
+    elseif Base.iszero(x)
+        minpos(Vnum{N,ES})
+    elseif x < zero(x)
+        lower_ulp(reinterpret(Vnum{N,ES},x))
+    else
+        upper_ulp(reinterpret(Vnum{N,ES},x))
+    end
+end
+function resolve_rounding{N,ES}(x::Sigmoid{N,ES,:inward_ulp}, ::Type{Val{:upper}})
+    if !isfinite(x)
+        maxpos(Vnum{N,ES})
+    elseif Base.iszero(x)
+        throw(ArgumentError("an inward ulp cannot be zero"))
+    elseif x < zero(x)
+        upper_ulp(reinterpret(Vnum{N,ES},x))
+    else
+        inner_ulp(reinterpret(Vnum{N,ES},x))
+    end
+end
+function resolve_rounding{N,ES}(x::Sigmoid{N,ES,:inward_ulp}, ::Type{Val{:lower}})
+    if !isfinite(x)
+        minneg(Vnum{N,ES})
+    elseif Base.iszero(x)
+        throw(ArgumentError("an inward ulp cannot be zero"))
+    elseif x < zero(x)
+        upper_ulp(reinterpret(Vnum{N,ES},x))
+    else
+        inner_ulp(reinterpret(Vnum{N,ES},x))
+    end
+end
+
+→{N,ES}(lower::RoundedSigmoid{N,ES}, upper::Direct_Sigmoid{N,ES}) = resolve_rounding(lower)              → resolve_rounding(upper, Val{:upper})
+→{N,ES}(lower::Direct_Sigmoid{N,ES}, upper::RoundedSigmoid{N,ES}) = resolve_rounding(lower, Val{:lower}) → resolve_rounding(upper)
+→{N,ES}(lower::Direct_Sigmoid{N,ES}, upper::Direct_Sigmoid{N,ES}) = resolve_rounding(lower, Val{:lower}) → resolve_rounding(upper, Val{:upper})
 
 →{N,ES}(lower::RoundedSigmoid{N,ES}, upper::RoundedSigmoid{N,ES}) = resolve_rounding(lower)                 → resolve_rounding(upper)
 →{N,ES}(lower::Sigmoid{N,ES,:cross}, upper::RoundedSigmoid{N,ES}) = reinterpret(Sigmoid{N,ES,:lower},lower) → upper

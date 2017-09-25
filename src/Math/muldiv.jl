@@ -13,7 +13,15 @@ const multiplication_types = Dict((:guess, :guess) => :guess,
                                   (:lower, :lower) => :lower,
                                   (:upper, :upper) => :upper,
                                   (:lower, :upper) => :cross,
-                                  (:upper, :lower) => :cross)
+                                  (:upper, :lower) => :cross,
+                                  (:inward_exact,  :inward_exact)  => :inward_exact,
+                                  (:inward_ulp,    :inward_exact)  => :inward_ulp,
+                                  (:inward_exact,  :inward_ulp)    => :inward_ulp,
+                                  (:inward_ulp,    :inward_ulp)    => :inward_ulp,
+                                  (:outward_exact, :outward_exact) => :outward_exact,
+                                  (:outward_ulp,   :outward_exact) => :outward_ulp,
+                                  (:outward_exact, :outward_ulp)   => :outward_ulp,
+                                  (:outward_ulp,   :outward_ulp)   => :outward_ulp)
 
 const nanerror_code = :(throw(NaNError(*, Any[lhs, rhs])))
 const exactinf_code = :(Sigmoid{N,ES,:exact}(Inf))
@@ -30,10 +38,18 @@ const multiplication_inf_zero = Dict((:guess, :guess) => nanerror_code,
                                      (:exact, :upper) => exactinf_code,
                                      (:lower, :exact) => exactzero_code,
                                      (:upper, :exact) => exactzero_code,
-                                     (:lower, :lower) => temporary_problem,
-                                     (:upper, :upper) => temporary_problem,
+                                     (:lower, :lower) => :(Sigmoid{N,ES,:lower}(Inf)),
+                                     (:upper, :upper) => :(zero(Sigmoid{N,ES,:upper})),
                                      (:upper, :lower) => temporary_problem,
-                                     (:lower, :upper) => temporary_problem)
+                                     (:lower, :upper) => temporary_problem,
+                                     (:inward_exact,  :inward_exact)  => nanerror_code,
+                                     (:inward_ulp,    :inward_exact)  => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                     (:inward_exact,  :inward_ulp)    => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                                     (:inward_ulp,    :inward_ulp)    => :(zero(Sigmoid{N,ES,:inward_ulp})),
+                                     (:outward_exact, :outward_exact) => nanerror_code,
+                                     (:outward_ulp,   :outward_exact) => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                     (:outward_exact, :outward_ulp)   => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                                     (:outward_ulp,   :outward_ulp)   => :(Sigmoid{N,ES,:outward_ulp}(Inf)))
 
 const multiplication_left_inf = Dict((:guess, :guess) => guessinf_code,
                                      (:exact, :exact) => exactinf_code,
@@ -44,7 +60,15 @@ const multiplication_left_inf = Dict((:guess, :guess) => guessinf_code,
                                      (:lower, :lower) => modeinf_code,
                                      (:upper, :upper) => modeinf_code,
                                      (:upper, :lower) => :(Sigmoid{N,ES,:lower}(Inf)),
-                                     (:lower, :upper) => :(Sigmoid{N,ES,:lower}(Inf)))
+                                     (:lower, :upper) => :(Sigmoid{N,ES,:lower}(Inf)),
+                                     (:inward_exact,  :inward_exact)  => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                                     (:inward_ulp,    :inward_exact)  => :(Sigmoid{N,ES,:inward_ulp}(Inf)),
+                                     (:inward_exact,  :inward_ulp)    => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                                     (:inward_ulp,    :inward_ulp)    => :(Sigmoid{N,ES,:inward_ulp}(Inf)),
+                                     (:outward_exact, :outward_exact) => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                                     (:outward_ulp,   :outward_exact) => :(Sigmoid{N,ES,:outward_ulp}(Inf)),
+                                     (:outward_exact, :outward_ulp)   => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                                     (:outward_ulp,   :outward_ulp)   => :(Sigmoid{N,ES,:outward_ulp}(Inf)))
 
 const multiplication_left_zero = Dict((:guess, :guess) => modezero_code,
                                       (:exact, :exact) => exactzero_code,
@@ -55,7 +79,15 @@ const multiplication_left_zero = Dict((:guess, :guess) => modezero_code,
                                       (:lower, :lower) => modezero_code,
                                       (:upper, :upper) => modezero_code,
                                       (:upper, :lower) => :(zero(Sigmoid{N,ES,:upper})),
-                                      (:lower, :upper) => :(zero(Sigmoid{N,ES,:upper})))
+                                      (:lower, :upper) => :(zero(Sigmoid{N,ES,:upper})),
+                                      (:inward_exact,  :inward_exact)  => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                      (:inward_ulp,    :inward_exact)  => :(zero(Sigmoid{N,ES,:inward_ulp})),
+                                      (:inward_exact,  :inward_ulp)    => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                      (:inward_ulp,    :inward_ulp)    => :(zero(Sigmoid{N,ES,:inward_ulp})),
+                                      (:outward_exact, :outward_exact) => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                      (:outward_ulp,   :outward_exact) => :(zero(Sigmoid{N,ES,:outward_ulp})),
+                                      (:outward_exact, :outward_ulp)   => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                      (:outward_ulp,   :outward_ulp)   => :(zero(Sigmoid{N,ES,:outward_ulp})))
 
 @generated function *{N, ES, lhs_mode, rhs_mode}(lhs::Sigmoid{N, ES, lhs_mode}, rhs::Sigmoid{N, ES, rhs_mode})
 
