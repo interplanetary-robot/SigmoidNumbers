@@ -121,11 +121,6 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     # extremum.
     =#
   else
-      lhs_lower = @d_lower lhs
-      lhs_upper = @d_upper lhs
-      rhs_lower = @d_lower rhs
-      rhs_upper = @d_upper rhs
-
       _state = nonpositive(lhs) * 1 + nonpositive(rhs) * 2
 
       if _state == __LHS_POS_RHS_POS
