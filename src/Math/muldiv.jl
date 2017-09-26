@@ -5,15 +5,6 @@ import Base: *
 
 #introduce a "cross" mode which requires a reconversion in order to proceed.
 const multiplication_types = Dict((:guess, :guess) => :guess,
-                                  (:exact, :exact) => :exact,
-                                  (:exact, :lower) => :lower,
-                                  (:exact, :upper) => :upper,
-                                  (:lower, :exact) => :lower,
-                                  (:upper, :exact) => :upper,
-                                  (:lower, :lower) => :lower,
-                                  (:upper, :upper) => :upper,
-                                  (:lower, :upper) => :cross,
-                                  (:upper, :lower) => :cross,
                                   (:inward_exact,  :inward_exact)  => :inward_exact,
                                   (:inward_ulp,    :inward_exact)  => :inward_ulp,
                                   (:inward_exact,  :inward_ulp)    => :inward_ulp,
@@ -61,7 +52,45 @@ const multiplication_left_zero = Dict((:guess,         :guess)         => :(zero
 @generated function *{N, ES, lhs_mode, rhs_mode}(lhs::Sigmoid{N, ES, lhs_mode}, rhs::Sigmoid{N, ES, rhs_mode})
 
     #dealing with modes for multiplication
-    haskey(multiplication_types, (lhs_mode, rhs_mode)) || return :(zero(Sigmoid{N,ES, lhs_mode}))
+    if !haskey(multiplication_types, (lhs_mode, rhs_mode))
+
+        #inward_exact and outward_exact could be annihilators which makes some processes
+        #try to send "incorrect types" to the multiplication algorithm.  This segment
+        #of metacode deals with these situations.
+
+        rhs_infcheck,rhs_zercheck = (rhs_mode == :inward_exact) || (rhs_mode == :outward_exact) ? (:(!isfinite(rhs)),:(Base.iszero(rhs))) : (:(false), :(false))
+
+        lhs_test = if (lhs_mode == :inward_exact) || (lhs_mode == :outward_exact)
+            quote
+                if Base.iszero(lhs)
+                    $rhs_infcheck && $nanerror_code
+                    return zero(Sigmoid{N,ES,:inward_exact})
+                end
+                if !isfinite(lhs)
+                    $rhs_zercheck && $nanerror_code
+                    return Sigmoid{N,ES,:outward_exact}(Inf)
+                end
+            end
+        else
+            :()
+        end
+
+        rhs_test = if (rhs_mode == :inward_exact) || (rhs_mode == :outward_exact)
+            quote
+                Base.iszero(rhs) && return zero(Sigmoid{N,ES,:inward_exact})
+                !isfinite(rhs) && return Sigmoid{N,ES,:outward_exact}(Inf)
+            end
+        else
+            :()
+        end
+
+        return quote
+            $lhs_test
+            $rhs_test
+            throw(ArgumentError("incompatible types"))
+        end
+    end
+
     #throw(ArgumentError("incompatible types passed to multiplication function! ($lhs_mode, $rhs_mode)"))
     mode = multiplication_types[(lhs_mode, rhs_mode)]
     infzero_code = multiplication_inf_zero[(lhs_mode,rhs_mode)]

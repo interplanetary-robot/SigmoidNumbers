@@ -39,13 +39,17 @@ end
 function min_not_inf{N,ES,mode1,mode2}(x::Sigmoid{N,ES,mode1}, y::Sigmoid{N,ES,mode2})
     isfinite(x) || return y
     isfinite(y) || return x
-    min(x, y)
+    if mode1 == mode2
+        min(x, y)
+    end
 end
 
 function max_not_inf{N,ES,mode1,mode2}(x::Sigmoid{N,ES,mode1}, y::Sigmoid{N,ES,mode2})
     isfinite(x) || return y
     isfinite(y) || return x
-    max(x, y)
+    if mode1 == mode2
+        max(x, y)
+    end
 end
 
 function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
@@ -81,7 +85,7 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         return res
 
     elseif roundsinf(rhs)  #now we must check if rhs rounds infinity.
-        #=
+
         lower1 = (@d_lower lhs) * (@d_lower rhs)
         lower2 = (@d_upper lhs) * (@d_upper rhs)
 
@@ -89,13 +93,11 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         upper2 = (@d_upper lhs) * (@d_lower rhs)
 
         min_not_inf(lower1, lower2) → max_not_inf(upper1, upper2)
-        =#
     else
         #the last case is if lhs rounds infinity but rhs is a "well-behaved" value.
         #canonical example:
         # (2, -3) * (5, 7) -> (10, -15)
         # (2, -3) * (-7, -5) -> (15, -10)
-
 
         if (rhs.lower > zero(Vnum{N,ES}))
             ((@d_lower lhs) * (@d_lower rhs)) → ((@d_upper lhs) * (@d_lower rhs))
@@ -131,7 +133,7 @@ function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
           ((@d_lower lhs) * (@d_upper rhs)) → ((@d_upper lhs) * (@d_lower rhs))
       elseif (_state == __LHS_POS_RHS_NEG)
           ((@d_upper lhs) * (@d_lower rhs)) → ((@d_lower lhs) * (@d_upper rhs))
-      else   #state == 3
+      else
           ((@d_upper lhs) * (@d_upper rhs)) → ((@d_lower lhs) * (@d_lower rhs))
       end
   end
