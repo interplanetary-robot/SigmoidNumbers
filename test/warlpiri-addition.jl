@@ -1,6 +1,11 @@
 
 @testset "warlpiri-addition" begin
 
+  #commutativity test.
+  for a in WP, b in WP, c in WP, d in WP
+      @test ((a → b) + (c → d)) == ((c → d) + (a → b))
+  end
+
   const warlpiri_sum_matrix = [
    #W0_0 W0_1 W0_2 W0_3 W0_4 W0_5 W0_6 W0_7 W0_8   W1_1 W1_2 W1_3 W1_4 W1_5 W1_6 W1_7 W1_8   W2_2 W2_3 W2_4 W2_5 W2_6 W2_7 W2_8   W3_3 W3_4 W3_5 W3_6 W3_7 W3_8   W4_4 W4_5 W4_6 W4_7 W4_8   W5_5 W5_6 W5_7 W5_8   W6_6 W6_7 W6_8   W7_7 W7_8   W8_8
     W0_0 W0_1 W0_2 W0_3 W0_4 W0_5 W0_6 W0_7 W0_8   W1_1 W1_2 W1_3 W1_4 W1_5 W1_6 W1_7 W1_8   W2_2 W2_3 W2_4 W2_5 W2_6 W2_7 W2_8   W3_3 W3_4 W3_5 W3_6 W3_7 W3_8   W4_4 W4_5 W4_6 W4_7 W4_8   W5_5 W5_6 W5_7 W5_8   W6_6 W6_7 W6_8   W7_7 W7_8   W8_8 # + W0_0

@@ -149,32 +149,6 @@ end
         __round(build_numeric($S, mul_sgn, mul_exp, mul_frc))
     end
 end
-#
-#  Multiplication with ES 0 can use arithmetic mode.
-#
-#=
-function mul_algorithm{N, mode}(lhs::Sigmoid{N, 0, mode}, rhs::Sigmoid{N, 0, mode})
-  ES = 0
-  #generate the lhs and rhs subcomponents.
-  @breakdown lhs arithmetic
-  @breakdown rhs arithmetic
-
-  #sign is the xor of both signs.
-  mul_sgn = lhs_sgn ⊻ rhs_sgn
-
-  #the multiplicative exponent is the product of the two exponents.
-  mul_exp = lhs_exp + rhs_exp
-
-  #then calculate the fraction.
-  mul_frc = demote(promote(lhs_frc) * promote(rhs_frc))
-
-  shift = min(leading_zeros(mul_frc) - 1, mul_exp)
-  mul_frc <<= shift + 1
-  mul_exp -= shift
-
-  __round(build_arithmetic(Sigmoid{N, 0, mode}, mul_sgn, mul_exp, mul_frc))
-end
-=#
 
 @generated function Base.:/{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
   #calculate the number of rounds we should apply the goldschmidt method.

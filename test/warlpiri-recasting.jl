@@ -21,4 +21,6 @@ end
    @test SigmoidNumbers.@d_upper(WP(0b0000) → WP(0b0000)) == Sigmoid{4,0,:inward_exact}(0b0000)
    @test SigmoidNumbers.@d_upper(WP(0b0100) → WP(0b1000)) == Sigmoid{4,0,:inward_exact}(0b1000)
    @test SigmoidNumbers.@d_upper(WP(0b1000) → WP(0b1000)) == Sigmoid{4,0,:outward_exact}(0b1000)
+
+   @test SigmoidNumbers.@d_upper(WP(0b1101) → WP(0b0100)) == Sigmoid{4,0,:inward_exact}(0b0100)
 end

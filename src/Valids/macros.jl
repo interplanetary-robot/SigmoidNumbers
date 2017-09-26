@@ -49,7 +49,7 @@ macro d_upper(value)
             Base.iszero($value.lower) ? zero($value ~ :inward_exact)                            : zero($value ~ :outward_exact)
         elseif !isfinite($value.upper)
             isfinite($value.lower)    ? reinterpret(($value ~ :inward_exact), $value.upper)     : reinterpret(($value ~ :outward_exact), $value.upper)
-        elseif ($value.lower < zero($value ~ :ubit))
+        elseif ($value.upper < zero($value ~ :ubit))
             isulp($value.upper)       ? reinterpret(($value ~ :outward_ulp), lub($value.upper)) : reinterpret(($value ~ :outward_exact), $value.upper)
         else
             isulp($value.upper)       ? reinterpret(($value ~ :inward_ulp),  lub($value.upper)) : reinterpret(($value ~ :inward_exact),  $value.upper)

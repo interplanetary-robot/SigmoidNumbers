@@ -37,20 +37,47 @@ function nonpositive{N,ES}(x::Valid{N,ES})
 end
 
 function min_not_inf{N,ES,mode1,mode2}(x::Sigmoid{N,ES,mode1}, y::Sigmoid{N,ES,mode2})
-    isfinite(x) || return y
-    isfinite(y) || return x
-    if mode1 == mode2
-        min(x, y)
-    end
+    isfinite(x) || return (mode1 == :inward_ulp) ? x : y
+    isfinite(y) || return (mode2 == :inward_ulp) ? y : x
+    min(x, y)
 end
 
 function max_not_inf{N,ES,mode1,mode2}(x::Sigmoid{N,ES,mode1}, y::Sigmoid{N,ES,mode2})
-    isfinite(x) || return y
-    isfinite(y) || return x
-    if mode1 == mode2
-        max(x, y)
-    end
+    isfinite(x) || return (mode1 == :inward_ulp) ? x : y
+    isfinite(y) || return (mode2 == :inward_ulp) ? y : x
+    max(x, y)
 end
+
+function Base.min{N,ES}(x::Sigmoid{N,ES,:inward_exact}, y::Sigmoid{N,ES,:inward_ulp})
+    rx = reinterpret(Vnum{N,ES}, x)
+    ry = reinterpret(Vnum{N,ES}, y)
+    (rx < zero(Vnum{N,ES})) && (rx == ry) && return x
+    (rx < ry) ? x : y
+end
+function Base.max{N,ES}(x::Sigmoid{N,ES,:inward_exact}, y::Sigmoid{N,ES,:inward_ulp})
+    rx = reinterpret(Vnum{N,ES}, x)
+    ry = reinterpret(Vnum{N,ES}, y)
+    (rx > zero(Vnum{N,ES})) && (rx == ry) && return x
+    (rx > ry) ? x : y
+end
+
+function Base.min{N,ES}(x::Sigmoid{N,ES,:outward_exact}, y::Sigmoid{N,ES,:outward_ulp})
+    rx = reinterpret(Vnum{N,ES}, x)
+    ry = reinterpret(Vnum{N,ES}, y)
+    (rx > zero(Vnum{N,ES})) && (rx == ry) && return x
+    (rx < ry) ? x : y
+end
+function Base.max{N,ES}(x::Sigmoid{N,ES,:outward_exact}, y::Sigmoid{N,ES,:outward_ulp})
+    rx = reinterpret(Vnum{N,ES}, x)
+    ry = reinterpret(Vnum{N,ES}, y)
+    (rx < zero(Vnum{N,ES})) && (rx == ry) && return x
+    (rx > ry) ? x : y
+end
+
+Base.min{N,ES}(x::Sigmoid{N,ES,:inward_ulp},y::Sigmoid{N,ES,:inward_exact})   = min(y, x)
+Base.max{N,ES}(x::Sigmoid{N,ES,:inward_ulp},y::Sigmoid{N,ES,:inward_exact})   = max(y, x)
+Base.min{N,ES}(x::Sigmoid{N,ES,:outward_ulp},y::Sigmoid{N,ES,:outward_exact}) = min(y, x)
+Base.max{N,ES}(x::Sigmoid{N,ES,:outward_ulp},y::Sigmoid{N,ES,:outward_exact}) = max(y, x)
 
 function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     if containszero(rhs)
@@ -110,33 +137,24 @@ end
 __simple_roundszero{T <: Valid}(v::T) = ((@s v.lower) < 0) & ((@s v.upper) > 0)
 
 function zeromul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
-  #lhs and rhs guaranteed to not cross infinity.  lhs guaranteed to contain zero.
-  if __simple_roundszero(rhs)
-     #=
-    # when rhs spans zero, we have to check four possible endpoints.
-    lower1 = __lower_mul(lhs.lower, rhs.upper)
-    lower2 = __lower_mul(lhs.upper, rhs.lower)
-    upper1 = __upper_mul(lhs.lower, rhs.lower)
-    upper2 = __upper_mul(lhs.upper, rhs.upper)
+    #lhs and rhs guaranteed to not cross infinity.  lhs guaranteed to contain zero.
+    if __simple_roundszero(rhs)
+        # when rhs spans zero, we have to check four possible endpoints.
+        lower1 = (@d_lower lhs) * (@d_upper rhs)
+        lower2 = (@d_upper lhs) * (@d_lower rhs)
+        upper1 = (@d_lower lhs) * (@d_lower rhs)
+        upper2 = (@d_upper lhs) * (@d_upper rhs)
 
-    return Valid{N,ES}(min(lower1, lower2), max(lower1, lower2))
-
-    # in the case where the rhs doesn't span zero, we must only multiply by the
-    # extremum.
-    =#
-  else
-      _state = nonpositive(lhs) * 1 + nonpositive(rhs) * 2
-
-      if _state == __LHS_POS_RHS_POS
-          ((@d_lower lhs) * (@d_upper rhs)) → ((@d_upper lhs) * (@d_upper rhs))
-      elseif (_state == __LHS_NEG_RHS_POS)
-          ((@d_lower lhs) * (@d_upper rhs)) → ((@d_upper lhs) * (@d_lower rhs))
-      elseif (_state == __LHS_POS_RHS_NEG)
-          ((@d_upper lhs) * (@d_lower rhs)) → ((@d_lower lhs) * (@d_upper rhs))
-      else
-          ((@d_upper lhs) * (@d_upper rhs)) → ((@d_lower lhs) * (@d_lower rhs))
-      end
-  end
+        return min_not_inf(lower1, lower2) → max_not_inf(upper1, upper2)
+        # in the case where the rhs doesn't span zero, we must only multiply by the
+        # extremum.
+    else
+        if nonpositive(rhs)
+            return ((@d_lower rhs) * (@d_upper lhs)) → ((@d_lower rhs) * (@d_lower lhs))
+        else
+            return ((@d_lower lhs) * (@d_upper rhs)) → ((@d_upper lhs) * (@d_upper rhs))
+        end
+    end
 end
 
 function stdmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
