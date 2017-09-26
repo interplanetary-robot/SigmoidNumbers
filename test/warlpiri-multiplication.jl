@@ -1,7 +1,7 @@
 
 @testset "warlpiri-multiplication" begin
 
-  #comprehensive reversal testset
+  #comprehensive commutativity testset
   for a in WP, b in WP, c in WP, d in WP
       @test ((a → b) * (c → d)) == ((c → d) * (a → b))
   end
@@ -151,7 +151,78 @@
 
     for (a,b) in zip(warlpiri_mul_rtz_values,pos_warlpiri)
         @test (a, b) == (WRTZ * b, b)
-        @test (a, b) == (b * WRTZ, b)
+        @test (-a, b) == ((-WRTZ) * b, b)
+        @test (-a, b) == (WRTZ * -b, b)
+        @test (a, b) == ((-WRTZ) * -b, b)
     end
 
+    #test two rounding-zero
+    @test (WP1110 → WP0001) * (WP1010 → WP0101) == (WP1101 → WP0100)
+
+    #test a plain rounding-infinity
+
+    WRTI = WP0100 → WP1101
+
+    warlpiri_mul_rti_values = [
+    WP1001 → WP1000, #WP0000 → WP0000
+    WP1001 → WP1000, #WP0000 → WP0001
+    WP1001 → WP1000, #WP0000 → WP0010
+    WP1001 → WP1000, #WP0000 → WP0011
+    WP1001 → WP1000, #WP0000 → WP0100
+    WP1001 → WP1000, #WP0000 → WP0101
+    WP1001 → WP1000, #WP0000 → WP0110
+    WP1001 → WP1000, #WP0000 → WP0111
+    WP1001 → WP1000, #WP0000 → WP1000
+
+    WP0001 → WP1111, #WP0001 → WP0001
+    WP0001 → WP1111, #WP0001 → WP0010
+    WP0001 → WP1111, #WP0001 → WP0011
+    WP0001 → WP1111, #WP0001 → WP0100
+    WP0001 → WP1111, #WP0001 → WP0101
+    WP0001 → WP1111, #WP0001 → WP0110
+    WP0001 → WP1111, #WP0001 → WP0111
+    WP0001 → WP1111, #WP0001 → WP1000
+
+    WP0010 → WP1101, #WP0010 → WP0010
+    WP0010 → WP1101, #WP0010 → WP0011
+    WP0010 → WP1101, #WP0010 → WP0100
+    WP0010 → WP1101, #WP0010 → WP0101
+    WP0010 → WP1101, #WP0010 → WP0110
+    WP0010 → WP1101, #WP0010 → WP0111
+    WP0010 → WP1101, #WP0010 → WP1000
+
+    WP0011 → WP1101, #WP0011 → WP0011
+    WP0011 → WP1101, #WP0011 → WP0100
+    WP0011 → WP1101, #WP0011 → WP0101
+    WP0011 → WP1101, #WP0011 → WP0110
+    WP0011 → WP1101, #WP0011 → WP0111
+    WP0011 → WP1101, #WP0011 → WP1000
+
+    WP0100 → WP1011, #WP0100 → WP0100
+    WP0100 → WP1011, #WP0100 → WP0101
+    WP0100 → WP1011, #WP0100 → WP0110
+    WP0100 → WP1011, #WP0100 → WP0111
+    WP0100 → WP1011, #WP0100 → WP1000
+
+    WP0101 → WP1011, #WP0101 → WP0101
+    WP0101 → WP1011, #WP0101 → WP0110
+    WP0101 → WP1011, #WP0101 → WP0111
+    WP0101 → WP1011, #WP0101 → WP1000
+
+    WP0110 → WP1001, #WP0110 → WP0110
+    WP0110 → WP1001, #WP0110 → WP0111
+    WP0110 → WP1001, #WP0110 → WP1000
+
+    WP0111 → WP1001, #WP0111 → WP0111
+    WP0111 → WP1001, #WP0111 → WP1000
+
+    WP1000 → WP1000, #WP1000 → WP1000
+    ]
+
+    for (a,b) in zip(warlpiri_mul_rti_values,pos_warlpiri)
+        @test (a, b) == (WRTI * b, b)
+        #@test (-a, b) == ((-WRTZ) * b, b)
+        #@test (-a, b) == (WRTZ * -b, b)
+        #@test (a, b) == ((-WRTZ) * -b, b)
+    end
 end
