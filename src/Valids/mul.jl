@@ -113,16 +113,11 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 
     elseif roundsinf(rhs)  #now we must check if rhs rounds infinity.
 
-        println("heyo")
-
         lower1 = (@d_lower lhs) * (@d_lower rhs)
         lower2 = (@d_upper lhs) * (@d_upper rhs)
 
         upper1 = (@d_lower lhs) * (@d_upper rhs)
         upper2 = (@d_upper lhs) * (@d_lower rhs)
-
-        println("$lower1, $lower2")
-        println("$upper1, $upper2")
 
         min_not_inf(lower1, lower2) → max_not_inf(upper1, upper2)
     else

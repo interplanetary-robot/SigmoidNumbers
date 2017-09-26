@@ -1,9 +1,12 @@
 
 @testset "warlpiri-multiplication" begin
 
-  #comprehensive commutativity testset
+  #comprehensive commutativity and negative distribution testset
   for a in WP, b in WP, c in WP, d in WP
       @test ((a → b) * (c → d)) == ((c → d) * (a → b))
+      @test -((a → b) * (c → d)) == ((-(a → b)) * (c → d))
+      @test -((a → b) * (c → d)) == ((a → b) * (-(c → d)))
+      @test ((a → b) * (c → d)) == ((-(a → b)) * (-(c → d)))
   end
 
   const warlpiri_prod_matrix = [
@@ -71,23 +74,6 @@
         @test (expected, l) == (evaluated, l)
     end
 
-    warlpiri_neg_prod_matrix = -warlpiri_prod_matrix
-    warlpiri_neg_mul_test_matrix = [a * -b for a in pos_warlpiri, b in pos_warlpiri]
-    warlpiri_neg_label_matrix = [(a, -b) for a in pos_warlpiri, b in pos_warlpiri]
-
-    for (expected, evaluated, l) in zip(warlpiri_neg_prod_matrix, warlpiri_neg_mul_test_matrix, warlpiri_neg_label_matrix)
-        #println(l)
-        @test (expected, l) == (evaluated, l)
-    end
-
-    warlpiri_dneg_mul_test_matrix = [-a * -b for a in pos_warlpiri, b in pos_warlpiri]
-    warlpiri_dneg_label_matrix = [(-a, -b) for a in pos_warlpiri, b in pos_warlpiri]
-
-    for (expected, evaluated, l) in zip(warlpiri_prod_matrix, warlpiri_dneg_mul_test_matrix, warlpiri_dneg_label_matrix)
-        #println(l)
-        @test (expected, l) == (evaluated, l)
-    end
-
     #next, test values when multiplying times something which goes "round the
     #zero"... We'll use the interval (-1, 1], which is representable as 0b1101
     #-> 0b1100
@@ -151,9 +137,6 @@
 
     for (a,b) in zip(warlpiri_mul_rtz_values,pos_warlpiri)
         @test (a, b) == (WRTZ * b, b)
-        @test (-a, b) == ((-WRTZ) * b, b)
-        @test (-a, b) == (WRTZ * -b, b)
-        @test (a, b) == ((-WRTZ) * -b, b)
     end
 
     #test two rounding-zero
@@ -161,7 +144,7 @@
 
     #test a plain rounding-infinity
 
-    WRTI = WP0100 → WP1101
+    WRTI = WP0100 → WP1011
 
     warlpiri_mul_rti_values = [
     WP1001 → WP1000, #WP0000 → WP0000
@@ -221,8 +204,5 @@
 
     for (a,b) in zip(warlpiri_mul_rti_values,pos_warlpiri)
         @test (a, b) == (WRTI * b, b)
-        #@test (-a, b) == ((-WRTZ) * b, b)
-        #@test (-a, b) == (WRTZ * -b, b)
-        #@test (a, b) == ((-WRTZ) * -b, b)
     end
 end
