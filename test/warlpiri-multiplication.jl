@@ -205,4 +205,71 @@
     for (a,b) in zip(warlpiri_mul_rti_values,pos_warlpiri)
         @test (a, b) == (WRTI * b, b)
     end
+
+    #test values that round both zero and infinity
+    WRTB = WP0110 → WP0001
+
+    warlpiri_mul_rtb_values = [
+    WP1001 → WP1000, #WP0000 → WP0000  #anything that contains zero will trigger all reals.
+    WP1001 → WP1000, #WP0000 → WP0001
+    WP1001 → WP1000, #WP0000 → WP0010
+    WP1001 → WP1000, #WP0000 → WP0011
+    WP1001 → WP1000, #WP0000 → WP0100
+    WP1001 → WP1000, #WP0000 → WP0101
+    WP1001 → WP1000, #WP0000 → WP0110
+    WP1001 → WP1000, #WP0000 → WP0111
+    WP1001 → WP1000, #WP0000 → WP1000
+
+    WP1001 → WP1000, #WP0001 → WP0001 #the 0b0111 * 0b0001 closes the gap here.
+    WP1001 → WP1000, #WP0001 → WP0010
+    WP1001 → WP1000, #WP0001 → WP0011
+    WP1001 → WP1000, #WP0001 → WP0100
+    WP1001 → WP1000, #WP0001 → WP0101
+    WP1001 → WP1000, #WP0001 → WP0110
+    WP1001 → WP1000, #WP0001 → WP0111
+    WP1001 → WP1000, #WP0001 → WP1000
+
+    WP0100 → WP0001, #WP0010 → WP0010
+    WP0100 → WP0001, #WP0010 → WP0011
+    WP0100 → WP0001, #WP0010 → WP0100
+    WP1001 → WP1000, #WP0010 → WP0101
+    WP1001 → WP1000, #WP0010 → WP0110
+    WP1001 → WP1000, #WP0010 → WP0111
+    WP1001 → WP1000, #WP0010 → WP1000
+
+    WP0101 → WP0001, #WP0011 → WP0011
+    WP0101 → WP0001, #WP0011 → WP0100
+    WP0101 → WP0011, #WP0011 → WP0101
+    WP0101 → WP0011, #WP0011 → WP0110
+    WP1001 → WP1000, #WP0011 → WP0111
+    WP1001 → WP1000, #WP0011 → WP1000
+
+    WP0110 → WP0001, #WP0100 → WP0100
+    WP0110 → WP0011, #WP0100 → WP0101
+    WP0110 → WP0011, #WP0100 → WP0110
+    WP1001 → WP1000, #WP0100 → WP0111
+    WP1001 → WP1000, #WP0100 → WP1000
+
+    WP0111 → WP0011, #WP0101 → WP0101
+    WP0111 → WP0011, #WP0101 → WP0110
+    WP1001 → WP1000, #WP0101 → WP0111
+    WP1001 → WP1000, #WP0101 → WP1000
+
+    WP0111 → WP0011, #WP0110 → WP0110
+    WP1001 → WP1000, #WP0110 → WP0111
+    WP1001 → WP1000, #WP0110 → WP1000
+
+    WP1001 → WP1000, #WP0111 → WP0111
+    WP1001 → WP1000, #WP0111 → WP1000
+
+    WP1001 → WP1000, #WP1000 → WP1000
+    ]
+
+    for (a,b) in zip(warlpiri_mul_rtb_values,pos_warlpiri)
+        @test (a, b) == (WRTB * b, b)
+    end
+
+    @test (WP1001 → WP1000) == WRTB * WRTI
+    @test (WP1001 → WP1000) == WRTB * WRTZ
+    @test (WP1001 → WP1000) == WRTB * WRTB
 end
