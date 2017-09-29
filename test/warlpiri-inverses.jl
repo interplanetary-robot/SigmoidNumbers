@@ -46,7 +46,7 @@
 
     mul_inv_matrix = map(/, wmatrix)
 
-    for (m, n) in zip(mul_inv_matrix, warlpiri_mul_invs)
-        @test m == n
+    for (m, n, w) in zip(mul_inv_matrix, warlpiri_mul_invs, wmatrix)
+        @test (m, w) == (n, w)
     end
 end

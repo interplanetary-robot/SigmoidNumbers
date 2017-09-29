@@ -3,7 +3,9 @@ import Base: *
 *{N, ES, mode}(lhs::Bool, rhs::Sigmoid{N, ES, mode}) = reinterpret(Sigmoid{N, ES, mode}, @s(rhs) * lhs)
 *{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Bool) = reinterpret(Sigmoid{N, ES, mode}, @s(lhs) * rhs)
 
-#introduce a "cross" mode which requires a reconversion in order to proceed.
+#############################################################################3##
+## return types for valid division.
+
 const multiplication_types = Dict((:guess, :guess) => :guess,
                                   (:inward_exact,  :inward_exact)  => :inward_exact,
                                   (:inward_ulp,    :inward_exact)  => :inward_ulp,
@@ -15,9 +17,6 @@ const multiplication_types = Dict((:guess, :guess) => :guess,
                                   (:outward_ulp,   :outward_ulp)   => :outward_ulp)
 
 const nanerror_code = :(throw(NaNError(*, Any[lhs, rhs])))
-const exactinf_code = :(Sigmoid{N,ES,:exact}(Inf))
-const temporary_problem = :(throw(ErrorException("this scenario is uncertain and needs to be resolved: $lhs * $rhs")))
-
 
 const multiplication_inf_zero = Dict((:guess,         :guess)         => nanerror_code,
                                      (:inward_exact,  :inward_exact)  => nanerror_code,
@@ -56,7 +55,8 @@ const multiplication_left_zero = Dict((:guess,         :guess)         => :(zero
 
         #inward_exact and outward_exact could be annihilators which makes some processes
         #try to send "incorrect types" to the multiplication algorithm.  This segment
-        #of metacode deals with these situations.
+        #of metacode deals with these situations, and creates stub multiplication
+        #algorithms which handle these cases.
 
         rhs_infcheck,rhs_zercheck = (rhs_mode == :inward_exact) || (rhs_mode == :outward_exact) ? (:(!isfinite(rhs)),:(Base.iszero(rhs))) : (:(false), :(false))
 
@@ -150,26 +150,206 @@ end
     end
 end
 
-@generated function Base.:/{N, ES, mode}(lhs::Sigmoid{N, ES, mode}, rhs::Sigmoid{N, ES, mode})
-  #calculate the number of rounds we should apply the goldschmidt method.
-  rounds = Int(ceil(log(2,N))) + 1
-  top_bit = promote(one(@UInt) << (__BITS - 1))
-  bot_bit = (one(@UInt) << (__BITS - N - 1))
+################################################################################
+## division
 
-  quote
-    #dividing infinities or by zero is infinite.
-    if !isfinite(lhs)
-      isfinite(rhs) || throw(NaNError(/,[lhs, rhs]))
-      return reinterpret(Sigmoid{N, ES, mode}, @signbit)
-    end
-    if rhs == zero(Sigmoid{N, ES, mode})
-      (lhs == zero(Sigmoid{N, ES, mode})) && throw(NaNError(/, [lhs, rhs]))
-      return reinterpret(Sigmoid{N, ES, mode}, @signbit)
+const division_types = Dict((:guess, :guess) => :guess,
+                            (:exact, :exact) => :exact,  #these three are supported for inverse calculation.
+                            (:exact, :upper) => :lower,
+                            (:exact, :lower) => :upper,
+                            (:inward_exact,  :outward_exact)  => :inward_exact,
+                            (:inward_ulp,    :outward_exact)  => :inward_ulp,
+                            (:inward_exact,  :outward_ulp)    => :inward_ulp,
+                            (:inward_ulp,    :outward_ulp)    => :inward_ulp,
+                            (:outward_exact, :inward_exact) => :outward_exact,
+                            (:outward_ulp,   :inward_exact) => :outward_ulp,
+                            (:outward_exact, :inward_ulp)   => :outward_ulp,
+                            (:outward_ulp,   :inward_ulp)   => :outward_ulp)
+
+const division_left_inf = Dict((:guess, :guess)                 => :(Sigmoid{N,ES,:guess}(Inf)),
+                               (:exact, :exact)                 => :(Sigmoid{N,ES,:exact}(Inf)),  #these three are supported for inverse calculation.
+                               (:exact, :upper)                 => :(Sigmoid{N,ES,:exact}(Inf)),
+                               (:exact, :lower)                 => :(Sigmoid{N,ES,:exact}(Inf)),
+                               (:inward_exact,  :outward_exact) => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                               (:inward_ulp,    :outward_exact) => :(Sigmoid{N,ES,:inward_ulp}(Inf)),
+                               (:inward_exact,  :outward_ulp)   => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                               (:inward_ulp,    :outward_ulp)   => :(Sigmoid{N,ES,:inward_ulp}(Inf)),
+                               (:outward_exact, :inward_exact)  => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                               (:outward_ulp,   :inward_exact)  => :(nothing),
+                               (:outward_exact, :inward_ulp)    => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                               (:outward_ulp,   :inward_ulp)    => :(nothing))
+
+const division_right_inf = Dict((:guess, :guess)                 => :(zero(Sigmoid{N,ES,:guess})),
+                                (:exact, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),  #these three are supported for inverse calculation.
+                                (:exact, :upper)                 => :(zero(Sigmoid{N,ES,:lower})),
+                                (:exact, :lower)                 => :(zero(Sigmoid{N,ES,:upper})),
+                                (:upper, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),
+                                (:lower, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),
+                                (:inward_exact,  :outward_exact) => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                (:inward_ulp,    :outward_exact) => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                (:inward_exact,  :outward_ulp)   => :(nothing),
+                                (:inward_ulp,    :outward_ulp)   => :(nothing),
+                                (:outward_exact, :inward_exact)  => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                (:outward_ulp,   :inward_exact)  => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                (:outward_exact, :inward_ulp)    => :(zero(Sigmoid{N,ES,:outward_ulp})),
+                                (:outward_ulp,   :inward_ulp)    => :(zero(Sigmoid{N,ES,:outward_ulp})))
+
+const division_zero_inf =  Dict((:guess, :guess)                 => :(zero(Sigmoid{N,ES,:guess})),
+                                (:exact, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),  #these three are supported for inverse calculation.
+                                (:exact, :upper)                 => :(zero(Sigmoid{N,ES,:lower})),
+                                (:exact, :lower)                 => :(zero(Sigmoid{N,ES,:upper})),
+                                (:upper, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),
+                                (:lower, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),
+                                (:inward_exact,  :outward_exact) => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                (:inward_ulp,    :outward_exact) => :(nothing),
+                                (:inward_exact,  :outward_ulp)   => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                (:inward_ulp,    :outward_ulp)   => :(nothing),
+                                (:outward_exact, :inward_exact)  => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                (:outward_ulp,   :inward_exact)  => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                (:outward_exact, :inward_ulp)    => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                (:outward_ulp,   :inward_ulp)    => :(zero(Sigmoid{N,ES,:outward_ulp})))
+
+
+const division_both_inf = Dict((:guess, :guess)                 => :(throw(NaNError(/,[lhs, rhs]))),
+                               (:exact, :exact)                 => :(throw(NaNError(/,[lhs, rhs]))),  #these three are supported for inverse calculation.
+                               (:exact, :upper)                 => :(Sigmoid{N,ES,:exact}(Inf)),
+                               (:exact, :lower)                 => :(Sigmoid{N,ES,:exact}(Inf)),
+                               (:upper, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),
+                               (:lower, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),
+                               (:inward_exact,  :outward_exact) => :(throw(NaNError(/,[lhs, rhs]))),
+                               (:inward_ulp,    :outward_exact) => :(zero(Sigmoid{N,ES,:inward_exact})),
+                               (:inward_exact,  :outward_ulp)   => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                               (:inward_ulp,    :outward_ulp)   => :(nothing),
+                               (:outward_exact, :inward_exact)  => :(throw(NaNError(/,[lhs, rhs]))),
+                               (:outward_ulp,   :inward_exact)  => :(zero(Sigmoid{N,ES,:outward_exact})),
+                               (:outward_exact, :inward_ulp)    => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                               (:outward_ulp,   :inward_ulp)    => :(nothing))
+
+const division_both_zero = Dict((:guess, :guess)                 => :(throw(NaNError(/,[lhs, rhs]))),
+                                (:exact, :exact)                 => :(throw(NaNError(/,[lhs, rhs]))),  #these three are supported for inverse calculation.
+                                (:upper, :exact)                 => :(Sigmoid{N,ES,:exact}(Inf)),
+                                (:lower, :exact)                 => :(Sigmoid{N,ES,:exact}(Inf)),
+                                (:exact, :upper)                 => :(zero(Sigmoid{N,ES,:exact})),
+                                (:exact, :lower)                 => :(zero(Sigmoid{N,ES,:exact})),
+                                (:inward_exact,  :outward_exact) => :(throw(NaNError(/,[lhs, rhs]))),
+                                (:inward_ulp,    :outward_exact) => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                                (:inward_exact,  :outward_ulp)   => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                (:inward_ulp,    :outward_ulp)   => :(nothing),
+                                (:outward_exact, :inward_exact)  => :(throw(NaNError(/,[lhs, rhs]))),
+                                (:outward_ulp,   :inward_exact)  => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                                (:outward_exact, :inward_ulp)    => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                (:outward_ulp,   :inward_ulp)    => :(nothing))
+
+const division_left_zero = Dict((:guess, :guess)                 => :(zero(Sigmoid{N,ES,:guess})),
+                                (:exact, :exact)                 => :(zero(Sigmoid{N,ES,:exact})),  #these three are supported for inverse calculation.
+                                (:exact, :upper)                 => :(zero(Sigmoid{N,ES,:exact})),
+                                (:exact, :lower)                 => :(zero(Sigmoid{N,ES,:exact})),
+                                (:upper, :exact)                 => :(zero(Sigmoid{N,ES,:upper})),
+                                (:lower, :exact)                 => :(zero(Sigmoid{N,ES,:lower})),
+                                (:inward_exact,  :outward_exact) => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                (:inward_ulp,    :outward_exact) => :(nothing),
+                                (:inward_exact,  :outward_ulp)   => :(zero(Sigmoid{N,ES,:inward_exact})),
+                                (:inward_ulp,    :outward_ulp)   => :(nothing),
+                                (:outward_exact, :inward_exact)  => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                (:outward_ulp,   :inward_exact)  => :(zero(Sigmoid{N,ES,:outward_ulp})),
+                                (:outward_exact, :inward_ulp)    => :(zero(Sigmoid{N,ES,:outward_exact})),
+                                (:outward_ulp,   :inward_ulp)    => :(zero(Sigmoid{N,ES,:outward_ulp})))
+
+const division_right_zero = Dict((:guess, :guess)                 => :(Sigmoid{N,ES,:guess}(Inf)),
+                                 (:exact, :exact)                 => :(Sigmoid{N,ES,:exact}(Inf)),  #these three are supported for inverse calculation.
+                                 (:exact, :upper)                 => :(Sigmoid{N,ES,:lower}(Inf)),
+                                 (:exact, :lower)                 => :(Sigmoid{N,ES,:upper}(Inf)),
+                                 (:upper, :exact)                 => :(Sigmoid{N,ES,:exact}(Inf)),
+                                 (:lower, :exact)                 => :(Sigmoid{N,ES,:exact}(Inf)),
+                                 (:inward_exact,  :outward_exact) => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                                 (:inward_ulp,    :outward_exact) => :(Sigmoid{N,ES,:inward_exact}(Inf)),
+                                 (:inward_exact,  :outward_ulp)   => :(Sigmoid{N,ES,:inward_ulp}(Inf)),
+                                 (:inward_ulp,    :outward_ulp)   => :(Sigmoid{N,ES,:inward_ulp}(Inf)),
+                                 (:outward_exact, :inward_exact)  => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                                 (:outward_ulp,   :inward_exact)  => :(Sigmoid{N,ES,:outward_exact}(Inf)),
+                                 (:outward_exact, :inward_ulp)    => :(nothing),
+                                 (:outward_ulp,   :inward_ulp)    => :(nothing))
+
+
+@generated function Base.:/{N,ES,lhs_mode,rhs_mode}(lhs::Sigmoid{N,ES,lhs_mode}, rhs::Sigmoid{N,ES,rhs_mode})
+     if !haskey(division_types, (lhs_mode, rhs_mode))
+        #inward_exact and outward_exact could be annihilators which makes some processes
+        #try to send "incorrect types" to the division algorithm.  This segment
+        #of metacode deals with these situations, and creates stub division
+        #algorithms which handle these cases.
+
+        rhs_infcheck,rhs_zercheck = (rhs_mode == :inward_exact) || (rhs_mode == :outward_exact) ? (:(!isfinite(rhs)),:(Base.iszero(rhs))) : (:(false), :(false))
+
+        lhs_test = if (lhs_mode == :inward_exact) || (lhs_mode == :outward_exact)
+            quote
+                if Base.iszero(lhs)
+                    $rhs_zercheck && $nanerror_code
+                    return zero(Sigmoid{N,ES,:inward_exact})
+                end
+                if !isfinite(lhs)
+                    $rhs_infcheck && $nanerror_code
+                    return Sigmoid{N,ES,:outward_exact}(Inf)
+                end
+            end
+        else
+            :()
+        end
+
+        rhs_test = if (rhs_mode == :inward_exact) || (rhs_mode == :outward_exact)
+            quote
+                Base.iszero(rhs) && return Sigmoid{N,ES,:outward_exact}(Inf)
+                !isfinite(rhs) && return zero(Sigmoid{N,ES,:inward_exact})
+            end
+        else
+            :()
+        end
+
+        return quote
+            $lhs_test
+            $rhs_test
+            throw(ArgumentError("incompatible types"))
+        end
     end
 
-    #dividing zeros or by infinity is zero
-    isfinite(rhs) || return zero(Sigmoid{N, ES, mode})
-    lhs == zero(Sigmoid{N, ES, mode}) && return zero(Sigmoid{N, ES, mode})
+    mode = division_types[(lhs_mode, rhs_mode)]
+    quotemode = QuoteNode(mode)
+
+    #specialized code for certain results
+    division_left_inf_code  = division_left_inf[(lhs_mode, rhs_mode)]
+    division_right_inf_code = division_right_inf[(lhs_mode, rhs_mode)]
+    division_both_inf_code  = division_both_inf[(lhs_mode, rhs_mode)]
+    division_both_zero_code = division_both_zero[(lhs_mode, rhs_mode)]
+    division_left_zero_code = division_left_zero[(lhs_mode, rhs_mode)]
+    division_right_zero_code = division_right_zero[(lhs_mode, rhs_mode)]
+    division_zero_inf_code  = division_zero_inf[(lhs_mode, rhs_mode)]
+
+    #calculate the number of rounds we should apply the goldschmidt method.
+    rounds = Int(ceil(log(2,N))) + 1
+    top_bit = promote(one(@UInt) << (__BITS - 1))
+    bot_bit = (one(@UInt) << (__BITS - N - 1))
+
+    quote
+        mode = $quotemode
+        #ZERO AND INFINITY EXCEPTION CASES.
+
+        #dividing infinities or by zero is infinite.
+        if !isfinite(lhs)
+            isfinite(rhs) || return $division_both_inf_code
+            return $division_left_inf_code
+        end
+
+        if rhs == zero(Sigmoid{N, ES, rhs_mode})
+            (lhs == zero(Sigmoid{N, ES, lhs_mode})) && return $division_both_zero_code
+            return $division_right_zero_code
+        end
+
+        #dividing zeros or by infinity is zero
+        if !isfinite(rhs)
+            Base.iszero(lhs) || return $division_right_inf_code
+            return $division_zero_inf_code
+        end
+
+        lhs == zero(Sigmoid{N, ES, lhs_mode}) && return $division_left_zero_code
 
     const cq_mask = promote(-one(@UInt))
 
@@ -177,9 +357,6 @@ end
     #we want there to 'always be a hidden bit', so we should use the "numeric" method.
     @breakdown lhs numeric
     @breakdown rhs numeric
-
-    #println("lhs_exp: $lhs_exp lhs_frc: ", bits(lhs_frc)[1:N])
-    #println("rhs_exp: $rhs_exp rhs_frc: ", bits(rhs_frc)[1:N])
 
     #sign is the xor of both signs.
     div_sgn = lhs_sgn ⊻ rhs_sgn
@@ -232,15 +409,6 @@ end
 
     result_ones = trailing_ones(div_frc >> (__BITS - N))
 
-    #println("trailing ones analysis")
-    #println("chk:", bits(div_frc)[1:N], " res_ones:  ", result_ones)
-    #println("rhs:", bits(rhs_frc)[1:N], " rhs_zeros: ", rhs_zeros)
-    #println("lhs:", bits(lhs_frc)[1:N], " lhs_zeros: ", lhs_zeros)
-    #println("pow:", power_gain)
-
-    #println("res_zeros:", result_ones + rhs_zeros)
-    #println("lhs_zeros:", lhs_zeros + N)
-
     if (lhs_zeros + N + (result_ones != N) == result_ones + rhs_zeros)
       #increment the lowest bit
       div_frc += $bot_bit
@@ -251,12 +419,10 @@ end
       power_gain += (div_frc == 0)
     end
 
-    #println("div_exp: $(div_exp + power_gain) div_frc: ", bits(div_frc))
-
     __round(build_numeric(Sigmoid{N, ES, mode}, div_sgn, div_exp + power_gain, div_frc))
   end
 end
 
 Base.inv{N,ES,mode}(x::Sigmoid{N,ES,mode}) = one(Sigmoid{N,ES,mode}) / x
-Base.inv{N,ES}(x::Sigmoid{N,ES,:lower}) = one(Sigmoid{N,ES,:upper}) / reinterpret(Sigmoid{N,ES,:upper}, x)
-Base.inv{N,ES}(x::Sigmoid{N,ES,:upper}) = one(Sigmoid{N,ES,:lower}) / reinterpret(Sigmoid{N,ES,:lower}, x)
+Base.inv{N,ES}(x::Sigmoid{N,ES,:lower}) = one(Sigmoid{N,ES,:exact}) / x
+Base.inv{N,ES}(x::Sigmoid{N,ES,:upper}) = one(Sigmoid{N,ES,:exact}) / x

@@ -22,20 +22,6 @@ const __LHS_NEG_RHS_POS = 1
 const __LHS_POS_RHS_NEG = 2
 const __LHS_NEG_RHS_NEG = 3
 
-doc"""
-  nonnegative(::Valid) is true if no values in x are negative.
-"""
-function nonnegative{N,ES}(x::Valid{N,ES})
-    (x.lower <= zero(Vnum{N,ES})) && (!isfinite(x.upper) || zero(num{N,ES}) <= x.upper <= maxpos(Vnum{N,ES}))
-end
-
-doc"""
-  nonpositive(::Valid) is true if no values in x are positive.
-"""
-function nonpositive{N,ES}(x::Valid{N,ES})
-    (x.upper <= zero(Vnum{N,ES})) && (!isfinite(x.lower) || minneg(Vnum{N,ES}) <= x.lower <= zero(Vnum{N,ES}))
-end
-
 function min_not_inf{N,ES,mode1,mode2}(x::Sigmoid{N,ES,mode1}, y::Sigmoid{N,ES,mode2})
     isfinite(x) || return (mode1 == :inward_ulp) ? x : y
     isfinite(y) || return (mode2 == :inward_ulp) ? y : x
@@ -85,18 +71,16 @@ function infmul{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     elseif containszero(lhs)  #lhs contains zero AND infinity
         roundsinf(rhs) && return Valid{N,ES}(ℝp)
 
-        #=
         #at this juncture, the value lhs must round both zero and infinity, and
         #the value rhs must be a standard, nonflipped double interval that is only on
         #one side of zero.
 
         # (100, 1) * (3, 4)     -> (300, 4)    (l * l, u * u)
-        # (100, 1) * (-4, -3)   -> (-4, -300)  (u * l, l * u)
         # (-1, -100) * (3, 4)   -> (-4, -300)  (l * u, u * l)
+        # (100, 1) * (-4, -3)   -> (-4, -300)  (u * l, l * u)
         # (-1, -100) * (-4, -3) -> (300, 4)    (u * u, l * l)
-        =#
 
-        _state = nonpositive(lhs) * 1 + nonpositive(rhs) * 2
+        _state = rounds_positive(lhs) * 1 + nonpositive(rhs) * 2
 
         if _state == __LHS_POS_RHS_POS
             res = ((@d_lower lhs) * (@d_lower rhs)) → ((@d_upper lhs) * (@d_upper rhs))

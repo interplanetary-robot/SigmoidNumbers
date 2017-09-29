@@ -71,3 +71,24 @@ end
 function isnegative{N,ES}(x::Valid{N,ES})
   (@u Vnum{N,ES}(Inf))< (@u x.lower) <= (@u x.upper)
 end
+
+
+"""
+  nonnegative(::Valid) is true if no values in x are negative.
+"""
+nonnegative{N,ES}(x::Valid{N,ES}) = (x.lower <= zero(Vnum{N,ES})) && ((!isfinite(x.upper) || x.lower <= x.upper <= maxpos(Vnum{N,ES})))
+
+"""
+  nonpositive(::Valid) is true if no values in x are positive.
+"""
+nonpositive{N,ES}(x::Valid{N,ES}) = (x.upper <= zero(Vnum{N,ES})) && ((!isfinite(x.lower) || minneg(Vnum{N,ES}) <= x.lower <= x.upper))
+
+"""
+  rounds_positive(::Valid) is true if x contains both zero, infinity, and passes through the positive numbers.
+"""
+rounds_positive{N,ES}(x::Valid{N,ES}) = isfinite(x.lower) && (x.lower <= zero(Vnum{N,ES})) && (x.upper < x.lower)
+
+"""
+  rounds_negative(::Valid) is true if x contains both zero, infinity, and passes through the negative numbers.
+"""
+rounds_negative{N,ES}(x::Valid{N,ES}) = isfinite(x.upper) && (x.upper >= zero(Vnum{N,ES})) && (x.lower > x.upper)

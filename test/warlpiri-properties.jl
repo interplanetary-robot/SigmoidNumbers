@@ -95,6 +95,30 @@
 
     @test SigmoidNumbers.isnegative.(wmatrix) == warlpiri_isnegative
 
+
+    ################################################################################
+    #rounds_positive test     ->  0000  0001  0010  0011  0100  0101  0110  0111  1000  1001  1010  1011  1100  1101  1110  1111
+    const warlpiri_rounds_pos = [false false false false false false false false  true  true  true  true  true  true  true  true  # 0000 ->
+                                 false false false false false false false false false false false false false false false false  # 0001 ->
+                                 false false false false false false false false false false false false false false false false  # 0010 ->
+                                 false false false false false false false false false false false false false false false false  # 0011 ->
+                                 false false false false false false false false false false false false false false false false  # 0100 ->
+                                 false false false false false false false false false false false false false false false false  # 0101 ->
+                                 false false false false false false false false false false false false false false false false  # 0110 ->
+                                 false false false false false false false false false false false false false false false false  # 0111 ->
+                                 false false false false false false false false false false false false false false false false  # 1000 ->
+                                 false false false false false false false false  true false false false false false false false  # 1001 ->
+                                 false false false false false false false false  true  true false false false false false false  # 1010 ->
+                                 false false false false false false false false  true  true  true false false false false false  # 1011 ->
+                                 false false false false false false false false  true  true  true  true false false false false  # 1100 ->
+                                 false false false false false false false false  true  true  true  true  true false false false  # 1101 ->
+                                 false false false false false false false false  true  true  true  true  true  true false false  # 1110 ->
+                                 false false false false false false false false  true  true  true  true  true  true  true false  # 1111 ->
+                                ]
+
+    @test SigmoidNumbers.rounds_positive.(wmatrix) == warlpiri_rounds_pos
+
+
     #test equality of all allreals.
     WP_z = zero(WP)
     WP_allreals = [next(a) → a for a in WP if a != WP_z && next(a) != WP_z]
