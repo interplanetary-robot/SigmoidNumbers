@@ -72,6 +72,7 @@ function lhs_infdiv{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
 end
 
 function rhs_infdiv{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
+
     if containszero(rhs)  #rhs contains zero AND infinity.
         #pass (for now)
         containszero(lhs) && return Valid{N,ES}(ℝp)
@@ -83,16 +84,17 @@ function rhs_infdiv{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
         #(10,   20) / (-1, -5) -> (-10, -4)
         #(-20, -10) / (-1, -5) -> (4, 10)
 
-        _state = (nonnegative(lhs)) * 1 + (rounds_negative(rhs)) * 2
+
+        _state = nonnegative(lhs) * 1 + rounds_negative(rhs) * 2
 
         if _state == __LHS_POS_RHS_POS
-            res = ((@d_upper lhs) / (@d_lower rhs)) → ((@d_lower lhs) / (@d_upper rhs))
-        elseif (_state == __LHS_NEG_RHS_POS)
             res = ((@d_upper lhs) / (@d_upper rhs)) → ((@d_lower lhs) / (@d_lower rhs))
+        elseif (_state == __LHS_NEG_RHS_POS)
+            res = ((@d_upper lhs) / (@d_lower rhs)) → ((@d_lower lhs) / (@d_upper rhs))
         elseif (_state == __LHS_POS_RHS_NEG)
-            res = ((@d_lower lhs) / (@d_lower rhs)) → ((@d_upper lhs) / (@d_upper rhs))
-        else   #state == 3
             res = ((@d_lower lhs) / (@d_upper rhs)) → ((@d_upper lhs) / (@d_lower rhs))
+        else
+            res = ((@d_lower lhs) / (@d_lower rhs)) → ((@d_upper lhs) / (@d_upper rhs))
         end
 
         (@s prev(res.lower)) <= (@s res.upper) && (return Valid{N,ES}(ℝp))
@@ -129,8 +131,10 @@ function lhs_zerodiv{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     #example: (-10, 20) / (-5, -2) -> (-10, 4)
 
     if nonpositive(rhs)
-        ((@d_lower lhs) / (@d_upper rhs)) → ((@d_upper lhs) / (@d_upper rhs))
+        #println(:a)
+        ((@d_upper lhs) / (@d_upper rhs)) → ((@d_lower lhs) / (@d_upper rhs))
     else
+        #println(:b)
         ((@d_lower lhs) / (@d_lower rhs)) → ((@d_upper lhs) / (@d_lower rhs))
     end
 end
@@ -141,7 +145,7 @@ function rhs_zerodiv{N,ES}(lhs::Valid{N,ES}, rhs::Valid{N,ES})
     #example: (10, 20) / (-2, 5) -> (-10, 4)
 
     if nonpositive(lhs)
-        ((@d_upper lhs) / (@d_upper rhs)) → ((@d_upper lhs) / (@d_lower rhs))
+        ((@d_upper lhs) / (@d_lower rhs)) → ((@d_upper lhs) / (@d_upper rhs))
     else
         ((@d_lower lhs) / (@d_upper rhs)) → ((@d_lower lhs) / (@d_lower rhs))
     end

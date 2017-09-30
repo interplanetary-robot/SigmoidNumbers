@@ -3,10 +3,10 @@
 
   #comprehensive negative distribution testset
   for a in WP, b in WP, c in WP, d in WP
-      println("testing $a $b $c $d")
+      #println("testing $a → $b, $c → $d")
       @test -((a → b) / (c → d)) == ((-(a → b)) / (c → d))
-      #@test -((a → b) / (c → d)) == ((a → b) / (-(c → d)))
-      #@test ((a → b) / (c → d)) == ((-(a → b)) / (-(c → d)))
+      @test -((a → b) / (c → d)) == ((a → b) / (-(c → d)))
+      @test ((a → b) / (c → d)) == ((-(a → b)) / (-(c → d)))
   end
 
   const warlpiri_div_matrix = [
