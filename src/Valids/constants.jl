@@ -1,4 +1,7 @@
 
+Base.one{N,ES}(T::Type{Valid{N,ES}}) = Valid(one(Vnum{N,ES}), one(Vnum{N,ES}))
+Base.zero{N,ES}(T::Type{Valid{N,ES}}) = Valid(zero(Vnum{N,ES}), zero(Vnum{N,ES}))
+
 type ∅; end
 type ℝ; end
 type ℝp; end
