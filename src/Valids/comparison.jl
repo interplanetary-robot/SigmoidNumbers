@@ -32,3 +32,18 @@ function Base.min{N,ES}(x::Sigmoid{N,ES,:exact}, y::Sigmoid{N,ES,:upper})
 end
 Base.min{N,ES}(x::Sigmoid{N,ES,:lower}, y::Sigmoid{N,ES,:exact}) = min(y,x)
 Base.min{N,ES}(x::Sigmoid{N,ES,:upper}, y::Sigmoid{N,ES,:exact}) = min(y,x)
+
+function Base.abs{N,ES}(x::Valid{N,ES})
+    if roundsinf(x)
+        return containszero(x) ? zero(Vnum{N,ES}) → Vnum{N,ES}(Inf) : min(x.lower, -x.upper) → Vnum{N,ES}(Inf)
+    elseif containszero(x)
+        return zero(Vnum{N,ES}) → max(-x.lower, x.upper)
+    else
+        return nonpositive(x) ? -x : x
+    end
+end
+
+#in order to get lu factorization working we need to implement a very special
+#form of the > function.
+
+Base.:<{N,ES}(x::Valid{N,ES}, y::Valid{N,ES}) = x.upper < y.upper

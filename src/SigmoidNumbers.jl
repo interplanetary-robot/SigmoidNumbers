@@ -24,14 +24,11 @@ module SigmoidNumbers
   include("fdp.jl")
   include("fdp-matrixsolve.jl")
 
+  #patching julia's native lu factorization.
+  include("LUpatches.jl")
+
   #temporary
   xlsh{T <: Posit}(x::T) = reinterpret(T, (@u(x) $ (@signbit)) >> 2)
   export xlsh
 
 end # module
-
-#temporary
-
-#macro widen(x)
-#  :(reinterpret(Posit{16,0}, $x))
-#end

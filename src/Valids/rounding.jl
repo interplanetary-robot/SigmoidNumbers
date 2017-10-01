@@ -1,4 +1,39 @@
 
+
+#this is a stub function.  It needs to be tested before being officially accepted.
+@generated function __round{N, ES}(x::Sigmoid{N, ES, :ubit}, extrabits::(@UInt) = zero(@UInt))
+  #for convenience, store the type of x as T.
+  T = x
+  z = zero(@UInt)
+
+  innerbit = one(@UInt) << (__BITS - N)
+  checkmask = (-(@UInt)(1)) >> (N)
+  blankmask = ~((-(@UInt)(1)) >> N)
+  quote
+    #take exact zero and exact infinity.
+    if (extrabits == zero(@UInt))
+      (@u(x) == @signbit) && return reinterpret($T, @signbit)
+      (@u(x) == zero(@UInt)) && return reinterpret($T, zero(@UInt))
+    end
+
+    truncated_value = @u(x) & $blankmask
+
+    #eliminate values that go towards infinity - as "maxreal"
+    (truncated_value == (@signbit) - $innerbit) && return reinterpret($T, truncated_value)
+    #eliminate values that go down to infinity.
+    (truncated_value == (@signbit)) && return reinterpret($T, truncated_value + $innerbit)
+    #eliminate values that go down to zero.
+    (truncated_value == zero(@UInt)) && return reinterpret($T, $innerbit)
+    #eliminate values that go up to zero.
+    (truncated_value == -$innerbit) && return reinterpret($T, -$innerbit)
+
+    #first look to see if the checkbit is set.  If it's zero, round down.
+    ($checkmask & @u(x) != $z) && return reinterpret($T, truncated_value | $innerbit)
+    return reinterpret($T, truncated_value)
+  end
+end
+
+
 #unify the three modes because we'll use the same mode for all of them.
 RoundedSigmoid{N,ES} = Union{Sigmoid{N,ES,:upper}, Sigmoid{N,ES,:lower}, Sigmoid{N,ES,:exact}, Sigmoid{N,ES,:outward_exact}, Sigmoid{N,ES,:inward_exact}}
 Direct_Sigmoid{N,ES} = Union{Sigmoid{N,ES,:outward_ulp}, Sigmoid{N,ES,:inward_ulp}}
