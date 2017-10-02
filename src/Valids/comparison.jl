@@ -47,3 +47,22 @@ end
 #form of the > function.
 
 Base.isless{N,ES}(x::Valid{N,ES}, y::Valid{N,ES}) = x.upper < y.upper
+
+#not-nowhere-equal
+function nowhere_equal{N,ES}(a::Valid{N,ES}, b::Valid{N,ES})
+    if roundsinf(a)
+        roundsinf(b) && return false
+        (a.lower > b.upper) && (a.upper < b.lower)
+    elseif roundsinf(b)
+        (a.lower > b.upper) && (a.upper < b.lower)
+    else
+        (a.lower > b.upper) || (b.lower > a.upper)
+    end
+end
+
+≸{N,ES}(a::Valid{N,ES}, b::Valid{N,ES}) = !nowhere_equal(a,b)
+≹{N,ES}(a::Valid{N,ES}, b::Valid{N,ES}) = ≸(a, b)
+#≮(a::Valid{N,ES}, b::Valid{N,ES}) = !(a < b)
+#≯(a::Valid{N,ES}, b::Valid{N,ES}) = !(a > b)
+
+export ≸,≹,≯,≮
