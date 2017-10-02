@@ -1,5 +1,10 @@
 #a few patches that make the builtin lu factorization possible.
 
+#taken from base/LinAlg/generic.jl
+
+if VERSION <= v"0.6.0"
+    #apparently these issues have been fixed in MASTER past v0.6.0
+
 function Base.LinAlg.istril(A::AbstractMatrix)
     m, n = size(A)
     for j = 2:n, i = 1:min(j-1,m)
@@ -20,6 +25,7 @@ function Base.LinAlg.istriu(A::AbstractMatrix)
     return true
 end
 
+#taken from base/LinAlg/lu.jl
 function Base.LinAlg.generic_lufact!(A::StridedMatrix{T}, ::Type{Val{Pivot}} = Val{true}) where {T,Pivot}
     m, n = size(A)
     minmn = min(m,n)
@@ -66,4 +72,6 @@ function Base.LinAlg.generic_lufact!(A::StridedMatrix{T}, ::Type{Val{Pivot}} = V
         end
     end
     Base.LinAlg.LU{T,typeof(A)}(A, ipiv, convert(Base.LinAlg.BlasInt, info))
+end
+
 end

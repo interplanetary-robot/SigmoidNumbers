@@ -46,4 +46,4 @@ end
 #in order to get lu factorization working we need to implement a very special
 #form of the > function.
 
-Base.:<{N,ES}(x::Valid{N,ES}, y::Valid{N,ES}) = x.upper < y.upper
+Base.isless{N,ES}(x::Valid{N,ES}, y::Valid{N,ES}) = x.upper < y.upper
