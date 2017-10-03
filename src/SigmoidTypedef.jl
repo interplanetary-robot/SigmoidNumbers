@@ -48,6 +48,7 @@ end
 
 #create a tile constructor that builds a tile from a vnum.
 tile{N,ES}(x::Sigmoid{N,ES,:ubit}) = Valid{N,ES}(reinterpret(Vnum{N,ES},x), reinterpret(Vnum{N,ES},x))
+tile{N,ES}(x::Sigmoid{N,ES,:exact}) = Valid{N,ES}(reinterpret(Vnum{N,ES},x), reinterpret(Vnum{N,ES},x))
 
 export Sigmoid, Posit, Vnum, Valid, Exact, ULP, →
 

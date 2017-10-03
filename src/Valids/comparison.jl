@@ -47,6 +47,7 @@ end
 #form of the > function.
 
 Base.isless{N,ES}(x::Valid{N,ES}, y::Valid{N,ES}) = x.upper < y.upper
+Base.:<{N,ES}(x::Valid{N,ES}, y::Valid{N,ES}) = Base.isless(x,y)
 
 #not-nowhere-equal
 function nowhere_equal{N,ES}(a::Valid{N,ES}, b::Valid{N,ES})
