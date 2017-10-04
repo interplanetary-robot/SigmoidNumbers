@@ -23,12 +23,34 @@ function splitintwo(x::Valid{N,ES}) where {N, ES}
     end
 end
 
+
+
+function splitinthree(x::Valid{N,ES}) where {N, ES}
+    if (x.upper == next(next(x.lower)))
+        tile(x.lower), x.lower |> next |> tile, tile(x.upper)
+    elseif (isallreals(x))
+        Vnum{N,ES}(Inf) → maxneg(Vnum{N,ES}), Vnum{N,ES} |> zero |> tile, minpos(Vnum{N,ES}) → maxpos(Vnum{N,ES})
+    elseif (roundsinf(x))
+        if !isfinite(x.lower)
+            (Valid{N,ES}(Inf), splitintwo(minneg(Vnum{N,ES}) → x.upper)...)
+        elseif !isfinite(x.upper)
+            (splitintwo(x.lower → maxpos(Vnum{N,ES}))..., Valid{N,ES}(Inf), )
+        else
+            x.lower → maxneg(Vnum{N,ES}), Inf |> Vnum{N,ES} |> tile, minneg(Vnum{N,ES}) → x.upper
+        end
+    else
+        middle1 = reinterpret(Vnum{N,ES}, (3 * ((@s x.lower) >> 2) + ((@s x.upper) >> 2))) |> __round
+        middle2 = reinterpret(Vnum{N,ES}, (((@s x.lower) >> 2) + 3 * ((@s x.upper) >> 2))) |> __round
+        x.lower → middle1, next(middle1) → prev(middle2), middle2 → x.upper
+    end
+end
+
 """
     vwidth(x::Valid{N,ES})
 
     describe the width of the valid number.  This is the number of tiles.
 """
-vwidth{N,ES}(x::Valid{N,ES}) = (@u x.upper) - (@u x.lower)
+vwidth{N,ES}(x::Valid{N,ES}) = ((@u x.upper) - (@u x.lower)) >> (64 - N) + 1
 
 function merge_contiguous!(v1::Array{Valid{N,ES},J}, v2::Array{Valid{N,ES},J}) where J where {N,ES}
     dim = 0
@@ -51,33 +73,40 @@ function merge_contiguous!(v1::Array{Valid{N,ES},J}, v2::Array{Valid{N,ES},J}) w
 end
 
 function coalesce!(a::Vector{Array{Valid{N,ES},J}}, b::Vector{Array{Valid{N,ES},J}}) where J where {N,ES}
-    for new_item in b
-        #check to see if you can merge it into anything in a.
-        merged = false
-        for idx = 1:length(a)
-            if merge_contiguous!(a[idx],new_item)
-                merged = true
-                break
-            end
-        end
-        merged || push!(a, new_item)
+    for b_item in b
+        coalesce!(a, b_item)
     end
-    coalesce!(a)
+    #coalesce!(a)
+    return a
+end
+function coalesce!(a::Vector{Array{Valid{N,ES},J}}, b::Array{Valid{N,ES},J}) where J where {N,ES}
+    merged = false
+    for idx = 1:length(a)
+        if merge_contiguous!(a[idx],b)
+            merged = true
+            break
+        end
+    end
+    merged || push!(a, b)
 end
 
-function coalesce!(a::Vector{Array{Valid{N,ES},J}}) where J where {N,ES}
-    result = Array{Valid{N,ES},J}[]
-    for a_item in a
-        merged = false
-        for idx = 1:length(result)
-            if merge_contiguous!(result[idx], a_item)
-                merged = true
-                break
-            end
+function coalesce_2!(a::Vector{Array{Valid{N,ES},J}}) where J where {N,ES}
+    #pop the top two values and attempt to coalesce them.
+    if length(a) >= 2
+        if merge_contiguous!(a[end-1], a[end])
+            pop!(a)
         end
-        merged || push!(result, a_item)
     end
-    result
+end
+
+function coalesce_top!(a::Vector{Array{Valid{N,ES},J}}) where J where {N,ES}
+    while length(a) >= 2
+        if merge_contiguous!(a[end-1], a[end])
+            pop!(a)
+        else
+            break
+        end
+    end
 end
 
 """
@@ -116,23 +145,111 @@ function ufilter(pred::Function, x::Array{Valid{N,ES},J}) where J where {N, ES}
     end
 end
 
-function boundingbox(aofv::Vector{Array{Valid{N,ES},J}}) where J where {N,ES}
-    bound = first(aofv)
-    if length(aofv) > 1
-        for idx = 2:length(aofv)
-            current_item = aofv[idx]
-            for jdx = 1:length(current_item)
-                if current_item[jdx].lower < bound[jdx].lower
-                    bound[jdx] = current_item[jdx].lower → bound[jdx].upper
-                end
-                if current_item[jdx].upper > bound[jdx].upper
-                    bound[jdx] = bound[jdx].lower → current_item[jdx].upper
-                end
+function ufilter_bfs(pred::Function, x::Array{Valid{N,ES},J}) where J where {N,ES}
+    #consider implementing this as a linked list type for better performance.
+    queue = Array{Valid{N,ES},J}[]
+    results = Array{Valid{N,ES},J}[]
+    unshift!(queue, x)
+    iter = 0
+    while length(queue) > 0
+        #examine the first element in the queue.
+        this_box = shift!(queue)
+        if pred(this_box)
+            if mapreduce(istile, &, true, this_box)
+                coalesce!(results, this_box)
+            else
+                #find the widest index in the array.
+                (_, idx) = this_box .|> vwidth |> findmax
+                upper_array = copy(this_box)
+                lower_array = copy(this_box)
+
+                #split this index in the array into two.
+                lower_value, upper_value = this_box[idx] |> splitintwo
+
+                lower_array[idx] = lower_value
+                upper_array[idx] = upper_value
+
+                #push both arrays onto the check queue.
+                unshift!(queue, lower_array)
+                unshift!(queue, upper_array)
             end
-       end
+        end
     end
-    bound
+    results
 end
 
-export ufilter
-export boundingbox
+#a temporary version of this, needs to take into account roundsinf.
+function Base.union(a::Valid{N,ES},b::Valid{N,ES}) where {N,ES}
+    return min(a.lower, b.lower) → max(a.upper, b.upper)
+end
+
+function merge_into!(a::Array{Valid{N,ES},J}, b::Array{Valid{N,ES},J}) where J where {N,ES}
+    #just assign when a in a.
+    isempty(a[1]) && (a[:] = b[:]; return)
+    for idx = 1:length(a)
+        a[idx] = union(a[idx], b[idx])
+    end
+end
+
+function Base.in(a::Valid{N,ES}, b::Valid{N,ES}) where {N,ES}
+    return a.lower >= b.lower && a.upper <= b.upper
+end
+
+function ufilter_dfs(pred::Function, x::Array{Valid{N,ES},J}) where J where {N,ES}
+    #consider implementing this as a linked list type for better performance.
+    queue = Array{Valid{N,ES},J}[]
+    bbox = [Valid{N,ES}(∅) for idx in 1:length(x)]
+    push!(queue, x)
+    iter = 0
+    while length(queue) > 0
+        #examine the first element in the queue.
+        this_box = pop!(queue)
+
+        this_box in bbox && continue
+
+        if pred(this_box)
+            if mapreduce(istile, &, true, this_box)
+                merge_into!(bbox, this_box)
+            else
+                #find the widest index in the array.
+                (_, idx) = this_box .|> vwidth |> findmax
+
+                this_width = this_box[idx] |> vwidth
+
+                if this_width >= 3
+                    upper_array = copy(this_box)
+                    middle_array = copy(this_box)
+                    lower_array = copy(this_box)
+
+                    #split this index in the array into two.
+                    lower_value, middle_value, upper_value = this_box[idx] |> splitinthree
+
+                    lower_array[idx] = lower_value
+                    middle_array[idx] = middle_value
+                    upper_array[idx] = upper_value
+
+                    #push all arrays onto the check queue, but put the middle last.
+                    push!(queue, middle_array)
+                    push!(queue, lower_array)
+                    push!(queue, upper_array)
+                else
+                    upper_array = copy(this_box)
+                    lower_array = copy(this_box)
+
+                    #split this index in the array into two.
+                    lower_value, upper_value = this_box[idx] |> splitintwo
+
+                    lower_array[idx] = lower_value
+                    upper_array[idx] = upper_value
+
+                    #push both arrays onto the check queue.
+                    push!(queue, lower_array)
+                    push!(queue, upper_array)
+                end
+            end
+        end
+    end
+    bbox
+end
+
+export ufilter, ufilter_bfs, ufilter_dfs
