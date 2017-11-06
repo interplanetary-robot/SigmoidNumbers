@@ -1,6 +1,5 @@
 #currently, matrix solve operations are on hold.
 
-#=
 doc"""
   SigmoidNumbers.get_unscaled_replacement_row!(rr, M, row, cache, quire)
 
@@ -190,7 +189,7 @@ function obliterate_lsb{N,ES}(pvalue::Posit{N,ES})
     Posit{N,ES}(s, exp + 1, frc)
   else
     #find the trailing zero, xor it out.
-    Posit{N,ES}(s, exp, frc $ (one(UInt64) << trailing_zeros(frc)))
+    Posit{N,ES}(s, exp, frc ⊻ (one(UInt64) << trailing_zeros(frc)))
   end
 end
 
@@ -241,7 +240,6 @@ end
 
 exact_rowsum{N,ES}(M::Matrix{Posit{N,ES}}) = [exact_sum(M[row, :]) for row = 1:size(M,1)]
 
-Base.big{N,ES}(x::Posit{N,ES}) = big(Float64(x))
+export random_exact_matrix, exact_rowsum
 
-export solve, refine, random_exact_matrix, exact_rowsum
-=#
+Base.big{N,ES}(x::Posit{N,ES}) = big(Float64(x))
