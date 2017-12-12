@@ -22,11 +22,15 @@ module SigmoidNumbers
 
   include("Tools/fft.jl")
   include("Tools/ubox.jl")
-  
+
   include("fdp.jl")
   include("fdp-matrixsolve.jl")
 
   #patching julia's native lu factorization.
   include("LUpatches.jl")
+
+  #including blas functions
+  include("BLAS/blas.jl")
+  include("BLAS/Level1.jl")
 
 end # module
