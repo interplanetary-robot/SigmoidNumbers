@@ -5,7 +5,7 @@ doc"""
 
   calculates the sum of the first n strided values in X.
 """
-function asum_naive{N,ES}(n::Integer, X::DenseArray{PositOrComplex{N,ES}}, incx::Integer)
+function asum_naive{N,ES}(n::Integer, X::DenseArray{<:PositOrComplex{N,ES}}, incx::Integer)
     #see LAPACK sasum.f for code reference:
     # http://www.netlib.org/lapack/explore-html/df/d28/group__single__blas__level1_gafc5e1e8d9f26907c0a7cf878107f08cf.html#gafc5e1e8d9f26907c0a7cf878107f08cf
 
@@ -47,7 +47,7 @@ function BLAS.asum{N,ES}(n::Integer, X::DenseArray{<:PositOrComplex{N,ES}}, incx
     accumulator
 end
 
-function axpy!{N,ES}(α, x::AbstractArray{Posit{N,ES}}, y::AbstractArray{Posit{N,ES}})
+function axpy!{T<:Posit}(α, x::AbstractArray{T}, y::AbstractArray{T})
     n = _length(x)
     if n != _length(y)
         throw(DimensionMismatch("x has length $n, but y has length $(_length(y))"))
@@ -58,12 +58,24 @@ function axpy!{N,ES}(α, x::AbstractArray{Posit{N,ES}}, y::AbstractArray{Posit{N
     y
 end
 
-function Base.dot{N,ES}(n::Integer, x::AbstractArray{Posit{N,ES}}, incx::Integer, y::AbstractArray{Posit{N,ES}}, incy::Integer)
-    (n <= 0 || incx <= 0) && return zero(Posit{N,ES})
+function dot_naive{T<:Posit}(n::Integer, x::AbstractArray{T}, incx::Integer, y::AbstractArray{T}, incy::Integer)
+    (n <= 0 || incx <= 0) && return zero(T)
+    (n * incx) > length(x) && throw(BoundsError(y, n * incx))
+    (n * incy) > length(y) && throw(BoundsError(y, n * incy))
+    accumulator = zero(T)
+    #TODO:  make this use the fused multiply add function.
+    for (xidx,yidx) in zip(1:incx:n*incx, 1:incy:n*incy)
+        @inbounds accumulator = accumulator + x[xidx] * y[yidx]
+    end
+    accumulator
+end
+
+function Base.dot{T<:Posit}(n::Integer, x::AbstractArray{T}, incx::Integer, y::AbstractArray{T}, incy::Integer)
+    (n <= 0 || incx <= 0) && return zero(T)
     (n * incx) > length(x) && throw(BoundsError(y, n * incx))
     (n * incy) > length(y) && throw(BoundsError(y, n * incy))
 
-    accumulator = zero(Posit{N,ES})
+    accumulator = zero(T)
     zero!(__real_quire)
     for (xidx,yidx) in zip(1:incx:n*incx, 1:incy:n*incy)
         @inbounds accumulator = fdp!(__real_quire, x[xidx], y[yidx])
@@ -71,48 +83,74 @@ function Base.dot{N,ES}(n::Integer, x::AbstractArray{Posit{N,ES}}, incx::Integer
     accumulator
 end
 
-function Base.dot{N,ES}(n::Integer, x::AbstractArray{Complex{Posit{N,ES}}}, incx::Integer, y::AbstractArray{Complex{Posit{N,ES}}}, incy::Integer)
-    (n <= 0 || incx <= 0) && return zero(Posit{N,ES})
+function dot_naive{T<:Posit}(n::Integer, x::AbstractArray{Complex{T}}, incx::Integer, y::AbstractArray{Complex{T}}, incy::Integer)
+    (n <= 0 || incx <= 0) && return zero(T)
+    (n * incx) > length(x) && throw(BoundsError(y, n * incx))
+    (n * incy) > length(y) && throw(BoundsError(y, n * incy))
+
+    real_accumulator = zero(T)
+    imag_accumulator = zero(T)
+    #TODO:  make this use the fused multiply add function.
+    for (xidx,yidx) in zip(1:incx:n*incx, 1:incy:n*incy)
+        @inbounds real_accumulator = real_accumulator + real(x[xidx]) * real(y[yidx])
+        @inbounds real_accumulator = real_accumulator + imag(x[xidx]) * imag(y[yidx])
+        @inbounds imag_accumulator = imag_accumulator + real(x[xidx]) * imag(y[yidx])
+        @inbounds imag_accumulator = imag_accumulator - imag(x[xidx]) * real(y[yidx])
+    end
+    accumulator
+end
+
+function Base.dot{T<:Posit}(n::Integer, x::AbstractArray{Complex{T}}, incx::Integer, y::AbstractArray{Complex{T}}, incy::Integer)
+    (n <= 0 || incx <= 0) && return zero(T)
     (n * incx) > length(x) && throw(BoundsError(y, n * incx))
     (n * incy) > length(y) && throw(BoundsError(y, n * incy))
 
     zero!(__real_quire)
     zero!(__imag_quire)
-    real_accumulator = zero(Posit{N,ES})
-    imag_accumulator = zero(Posit{N,ES})
+    real_accumulator = zero(T)
+    imag_accumulator = zero(T)
     for (xidx,yidx) in zip(1:incx:n*incx, 1:incy:n*incy)
         @inbounds real_accumulator = fdp!(__real_quire, real(x[xidx]), real(y[yidx]))
-        @inbounds real_accumulator = fdp!(__real_quire, -imag(x[xidx]), imag(y[yidx]))
+        @inbounds real_accumulator = fdp!(__real_quire, imag(x[xidx]), imag(y[yidx]))
         @inbounds imag_accumulator = fdp!(__imag_quire, real(x[xidx]), imag(y[yidx]))
-        @inbounds imag_accumulator = fdp!(__imag_quire, imag(x[xidx]), real(y[yidx]))
+        @inbounds imag_accumulator = fdp!(__imag_quire, -imag(x[xidx]), real(y[yidx]))
     end
     real_accumulator + imag_accumulator * im
 end
 
-function Base.dot{N,ES}(x::AbstractArray{Posit{N,ES}}, y::AbstractArray{Posit{N,ES}})
+function dot_naive{T<:Posit}(x::AbstractArray{T}, y::AbstractArray{T})
     if length(x) != length(y)
         throw(length(x) > length(y) ? BoundsError(x, length(y) + 1) : BoundsError(y, length(x) + 1))
     end
-    zero!(__real_quire)
-    accumulator = zero(Posit{N,ES})
+    accumulator = zero(T)
     for idx in 1:length(x)
-        @inbounds accumulator = fdp!(__real_quire, x[idx], y[idx])
+        @inbounds accumulator = accumulator + x[idx] * y[idx]
     end
     accumulator
 end
 
-function Base.dot{N,ES}(x::AbstractArray{Complex{Posit{N,ES}}}, y::AbstractArray{Complex{Posit{N,ES}}})
+function Base.dot{N,ES}(x::AbstractArray{<:PositOrComplex{N,ES}}, y::AbstractArray{<:PositOrComplex{N,ES}})
     if length(x) != length(y)
         throw(length(x) > length(y) ? BoundsError(x, length(y) + 1) : BoundsError(y, length(x) + 1))
     end
-    zero!(__real_quire)
-    zero!(__imag_quire)
-    real_accumulator = zero(Posit{N,ES})
-    imag_accumulator = zero(Posit{N,ES})
-    for idx in 1:length(x)
-        @inbounds real_accumulator = fdp!(__real_quire, real(x[xidx]), real(y[yidx]))
-        @inbounds real_accumulator = fdp!(__real_quire, -imag(x[xidx]), imag(y[yidx]))
-        @inbounds imag_accumulator = fdp!(__imag_quire, real(x[xidx]), imag(y[yidx]))
-        @inbounds imag_accumulator = fdp!(__imag_quire, imag(x[xidx]), real(y[yidx]))
-    end
+    naked_dot(x, y)
 end
+
+function dot_naive{T<:Posit}(x::AbstractArray{Complex{T}}, y::AbstractArray{Complex{T}})
+    if length(x) != length(y)
+        throw(length(x) > length(y) ? BoundsError(x, length(y) + 1) : BoundsError(y, length(x) + 1))
+    end
+    real_accumulator = zero(T)
+    imag_accumulator = zero(T)
+    for idx in 1:length(x)
+        #note that for complex values, the first vector is conjugated.
+        @inbounds real_accumulator = real_accumulator + real(x[xidx]) * real(y[yidx])
+        @inbounds real_accumulator = real_accumulator + imag(x[xidx]) * imag(y[yidx])
+        @inbounds imag_accumulator = imag_accumulator + real(x[xidx]) * imag(y[yidx])
+        @inbounds imag_accumulator = imag_accumulator - imag(x[xidx]) * real(y[yidx])
+    end
+    real_accumulator + imag_accumulator * im
+end
+
+#to implement:  vector 2-norm
+#unconjugated dot product

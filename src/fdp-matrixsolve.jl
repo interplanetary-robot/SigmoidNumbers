@@ -149,6 +149,13 @@ function solve{T}(M::Matrix{T}, v::Vector{T})
   r
 end
 
+function solve_with_refine{T}(M::Matrix{T}, v::Vector{T})
+    r = M \ v
+    r1 = refine(r, M, v)
+    r2 = refine(r, M, v)
+end
+
+
 doc"""
   find_residual(M, r, v)
   calculates v - M * r, using exact dot products.
@@ -170,8 +177,7 @@ doc"""
   calculates M * r and finds the residuals with respect to the solution v,
   and then solves those residuals and applies it back to r.
 """
-function refine{T}(r::Vector{T}, M::Matrix{T}, v::Vector{T})
-  quire = Quire(T)
+function refine{T}(r::Vector{T}, M::Matrix{T}, v::Vector{T}, quire = Quire(T))
   #first, find the residual.
   residual = find_residuals(M, r, v, quire)
   #then solve the residual, and augment r.
