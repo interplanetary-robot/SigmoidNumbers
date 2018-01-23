@@ -40,10 +40,11 @@ function (::Type{Quire}){N,ES}(::Type{Posit{N,ES}})
   Quire(zeros(UInt64, 64), false)
 end
 
-type fquire; q::Float64; end
-(::Type{Quire})(::Type{Float64}) = fquire(zero(Float64))
+type fquire{F}; q::F; end
+(::Type{Quire})(::Type{Float64}) = fquire{Float64}(zero(Float64))
+(::Type{Quire})(::Type{Float32}) = fquire{Float32}(zero(Float32))
 
-zero!(q::fquire) = q.q = 0
+zero!{T}(q::fquire{T}) = q.q = zero(T)
 #zeroes out the fused dot product accumulator.  Just throw out the old array.
 function zero!(q::Quire)
   q.infinity = false
@@ -56,7 +57,7 @@ doc"""
   inf!(q::Quire) forces the quire to carry an infinite value.
 """
 inf!(q::Quire) = (q.infinity = true; q)
-inf!(q::fquire) = (q.q = Inf; q)
+inf!{T}(q::fquire{T}) = (q.q = T(Inf); q)
 
 doc"""
   isnegative(q::Quire) checks if the quire contains a negative value.
@@ -267,7 +268,7 @@ end
 ################################################################################
 ## QUIRE FUNCTIONS
 
-set!(q::fquire, x::Float64) = (q.q = x; x)
+set!{T}(q::fquire{T}, x::T) = (q.q = x; x)
 
 function set!{N,ES}(acc::Quire, x::Posit{N,ES})
   #shortcut evaluation of infinity.
@@ -280,7 +281,7 @@ function set!{N,ES}(acc::Quire, x::Posit{N,ES})
   x
 end
 
-add!(q::fquire, x::Float64) = (q.q += x; q.q)
+add!{T}(q::fquire{T}, x::T) = (q.q += x; q.q)
 function add!{N,ES}(acc::Quire, x::Posit{N,ES})
 
   if isinf(x)
@@ -299,7 +300,7 @@ function add!{N,ES}(acc::Quire, x::Posit{N,ES})
   Posit{N,ES}(acc)
 end
 
-fdp!(q::fquire, a::Float64, b::Float64) = (q.q = fma(a, b, q.q); q.q)
+fdp!{T}(q::fquire{T}, a::T, b::T) = (q.q = fma(a, b, q.q); q.q)
 function fdp!{N,ES}(acc::Quire, a::Posit{N,ES}, b::Posit{N,ES})
 
   #intercept exceptional cases.

@@ -77,13 +77,11 @@ function solve_quire{T}(LM::LUMatrix{T}, v::AbstractVector{T}, quire = Quire(T))
 
     #next, permute the incoming vector
     for idx = 1:m
-        res[p[idx]] = v[idx]
+        res[idx] = v[p[idx]]
     end
 
-    println("start: $res")
     res = solve_quire(LowerTriangular(M), res, quire, Val{true})
     #CONTINUE WITH CODE FOR THE UPPER MATRIX.
-    println("intermediate: $res")
 
     solve_quire(UpperTriangular(M), res, quire)
 end
@@ -103,8 +101,8 @@ function lu_factors!{T}(M::AbstractMatrix{T}, quire = Quire(T))::LUMatrix{T}
         #ed by diagonal.
         for diag = 1:m
             # here we're going to do pivots to optimize the process.
-            # search for the maximum value in this column.
-            pidx = indmax(M[diag:m, diag]) + diag - 1
+            # search for the maximum absolute value in this column.
+            pidx = indmax(abs.(M[diag:m, diag])) + diag - 1
             if pidx != diag
                 #swap these rows
                 (pivot_list[diag], pivot_list[pidx]) = (pivot_list[pidx], pivot_list[diag])
@@ -171,7 +169,7 @@ function solve_quire{T}(A::AbstractMatrix{T}, B::AbstractVector{T}, quire = Quir
 end
 
 function solve_quire_refine{T}(A::AbstractMatrix{T}, B::AbstractVector{T})
-    res = solve_quire(A, B)
+    res = A \ B
     res = refine(res, A, B)
     res = refine(res, A, B)
 end
